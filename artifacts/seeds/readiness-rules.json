@@ -1,0 +1,57 @@
+{
+  "artifact_id": "readiness-rules",
+  "version": "0.1.0-seed",
+  "status": "seed",
+  "note": "SEED. Step 15 has no detailed record in the final scope document. v2.5 states only that the verdict is pass / conditional / fail and that it gates the deep derivation before determinism classification. These rules test whether the deep-derivation inputs (steps 9-14) are complete enough to classify determinism and derive controls. Requires M42 confirmation.",
+  "outcomes": ["pass", "conditional", "fail"],
+  "rules": [
+    {
+      "rule_id": "R01",
+      "provenance": "seed",
+      "description": "Fail where no workflow graph could be sequenced - determinism cannot be classified per step without one.",
+      "condition": "workflow_graph.nodes == []",
+      "outcome": "fail",
+      "reason": "No workflow graph was derived. Steps 16-19 cannot classify determinism or derive controls without per-step nodes."
+    },
+    {
+      "rule_id": "R02",
+      "provenance": "seed",
+      "description": "Fail where the criticality class was not confirmed - the control rigour depends on it.",
+      "condition": "not criticality_confirmation.architect_confirmed and criticality_confirmation.class_per_branch == {}",
+      "outcome": "fail",
+      "reason": "Criticality class is unconfirmed. Control derivation would proceed on an unvalidated rigour level."
+    },
+    {
+      "rule_id": "R03",
+      "provenance": "seed",
+      "description": "Conditional where no outcome assertions were declared - the solution would be unmonitorable.",
+      "condition": "outcome_assertions.assertions == []",
+      "outcome": "conditional",
+      "condition_text": "No outcome assertions declared. Assertions must be added before build hand-off so the solution is monitorable against a system of record."
+    },
+    {
+      "rule_id": "R04",
+      "provenance": "seed",
+      "description": "Conditional where quality attribute scenarios carry no numeric response measure sourced from an existing business commitment.",
+      "condition": "any(scenario.response_measure_value is None for scenario in quality_attributes.scenarios)",
+      "outcome": "conditional",
+      "condition_text": "One or more quality attribute scenarios lack a numeric response measure taken from an existing business commitment. Service levels must be sourced before component selection."
+    },
+    {
+      "rule_id": "R05",
+      "provenance": "seed",
+      "description": "Conditional where the ontology check found absent concepts - the derivation is reasoning over undefined terms.",
+      "condition": "ontology_delta.absent_concepts != []",
+      "outcome": "conditional",
+      "condition_text": "Business objects are not defined as ontology concepts. Gap flags have been routed to the Ontology Council; concepts must be defined before the design is published."
+    },
+    {
+      "rule_id": "R06",
+      "provenance": "seed",
+      "description": "Default outcome.",
+      "condition": "default",
+      "outcome": "pass",
+      "reason": "Deep-derivation inputs are complete: a sequenced workflow graph, a confirmed criticality class and declared outcome assertions."
+    }
+  ]
+}

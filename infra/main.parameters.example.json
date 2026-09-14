@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "_comment": [
+    "Copy to main.parameters.json and fill in your landing-zone resource names.",
+    "The real file is gitignored — it identifies a specific tenant.",
+    "Run scripts/discover-resources.ps1 to generate it automatically."
+  ],
+  "parameters": {
+    "environmentName": { "value": "dev" },
+    "location": { "value": "<region>" },
+
+    "containerAppsEnvironmentName": { "value": "<container-apps-environment>" },
+    "cosmosAccountName": { "value": "<cosmos-account>" },
+    "keyVaultName": { "value": "<key-vault>" },
+    "searchServiceName": { "value": "<ai-search-service>" },
+    "appInsightsName": { "value": "<application-insights>" },
+
+    "allowRegistryPublicAccess": { "value": true },
+
+    "compassSecretName": {
+      "_comment": "Empty = deploy without model access (stub mode). Set to the Key Vault secret name once the Compass key is issued, then redeploy.",
+      "value": ""
+    }
+  }
+}

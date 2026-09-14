@@ -1,0 +1,49 @@
+{
+  "artifact_id": "facet-schema",
+  "version": "0.1.0-seed",
+  "status": "seed",
+  "note": "SEED. v2.5 step 17 requires nine facets per step with a default per activity verb. The facet names below are inferred from what step 18 must consume to derive exposure and influence deterministically. M42 Risk must confirm the nine facets, their enumerated values and the verb defaults. CAFE M1 may supersede this.",
+  "facets": [
+    {"name": "actor", "values": ["system", "human", "hybrid"], "note": "who performs the step"},
+    {"name": "data_sensitivity", "values": ["public", "internal", "confidential", "regulated"]},
+    {"name": "reversibility", "values": ["reversible", "compensatable", "irreversible"], "note": "primary input to influence"},
+    {"name": "reach", "values": ["internal", "cross_department", "external"], "note": "primary input to exposure"},
+    {"name": "authority", "values": ["advisory", "recommending", "deciding"], "note": "primary input to influence"},
+    {"name": "autonomy", "values": ["supervised", "checkpointed", "autonomous"]},
+    {"name": "effect_class", "values": ["read", "derive", "write", "commit"]},
+    {"name": "audience", "values": ["none", "internal_staff", "patient", "regulator"], "note": "input to exposure"},
+    {"name": "determinism", "values": ["D0", "D1", "D2"], "note": "carried from step 16"}
+  ],
+  "verb_defaults": {
+    "read": {"effect_class": "read", "reversibility": "reversible", "authority": "advisory", "autonomy": "autonomous"},
+    "retrieve": {"effect_class": "read", "reversibility": "reversible", "authority": "advisory", "autonomy": "autonomous"},
+    "validate": {"effect_class": "derive", "reversibility": "reversible", "authority": "recommending", "autonomy": "checkpointed"},
+    "classify": {"effect_class": "derive", "reversibility": "reversible", "authority": "recommending", "autonomy": "checkpointed"},
+    "assess": {"effect_class": "derive", "reversibility": "reversible", "authority": "recommending", "autonomy": "checkpointed"},
+    "decide": {"effect_class": "derive", "reversibility": "compensatable", "authority": "deciding", "autonomy": "supervised"},
+    "approve": {"effect_class": "commit", "reversibility": "compensatable", "authority": "deciding", "autonomy": "supervised"},
+    "notify": {"effect_class": "write", "reversibility": "irreversible", "authority": "advisory", "autonomy": "autonomous", "reach": "external"},
+    "record": {"effect_class": "write", "reversibility": "compensatable", "authority": "recommending", "autonomy": "checkpointed"},
+    "update": {"effect_class": "write", "reversibility": "compensatable", "authority": "recommending", "autonomy": "checkpointed"},
+    "submit": {"effect_class": "commit", "reversibility": "irreversible", "authority": "deciding", "autonomy": "supervised"},
+    "issue": {"effect_class": "commit", "reversibility": "irreversible", "authority": "deciding", "autonomy": "supervised"},
+    "_default": {"effect_class": "derive", "reversibility": "reversible", "authority": "recommending", "autonomy": "checkpointed", "actor": "system", "reach": "internal", "audience": "internal_staff", "data_sensitivity": "internal"}
+  },
+  "derivation_rules": {
+    "note": "Consumed by step 18, which is deterministic. Facets in, classes out - no judgement.",
+    "exposure": [
+      {"when": {"reach": "external"}, "class": "external"},
+      {"when": {"audience": ["patient", "regulator"]}, "class": "external"},
+      {"when": {"reach": "cross_department"}, "class": "internal"},
+      {"when": {"data_sensitivity": ["regulated", "confidential"]}, "class": "internal"},
+      {"default": "contained"}
+    ],
+    "influence": [
+      {"when": {"authority": "deciding", "effect_class": "commit"}, "class": "determinative"},
+      {"when": {"reversibility": "irreversible"}, "class": "determinative"},
+      {"when": {"authority": "deciding"}, "class": "contributory"},
+      {"when": {"effect_class": ["write", "commit"]}, "class": "contributory"},
+      {"default": "advisory"}
+    ]
+  }
+}

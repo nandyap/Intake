@@ -1,0 +1,60 @@
+{
+  "artifact_id": "feasibility-rules",
+  "version": "0.1.0-seed",
+  "status": "seed",
+  "note": "Step 8 has NO detailed record in the final scope document. Rule F01 is NOT a seed - it is a direct sponsor directive and should be treated as binding. The remaining rules are seeds derived from v2.5's stated intent (stop spend on use cases that will not proceed) and require confirmation.",
+  "outcomes": ["proceed", "reject", "return_as_integration"],
+  "evaluation_order": "Rules are evaluated in listed order. The first triggered rule with a terminal outcome decides the verdict; later rules still evaluate so the audit trail is complete.",
+  "rules": [
+    {
+      "rule_id": "F01",
+      "provenance": "sponsor_directive",
+      "description": "Reject where an error would cause severe or permanent harm, even where an agent could technically perform the task.",
+      "quote": "That determination is based on the tolerance for error, so that a use case where an error would cause severe or permanent harm (currently as part of the intake inputs) is rejected even where an agent could technically perform it.",
+      "condition": "q22_failure_impact == 'Critical'",
+      "outcome": "reject",
+      "reason": "Failure impact is Critical: an error would cause severe or permanent harm. Agentic realisation is rejected on error tolerance regardless of technical feasibility."
+    },
+    {
+      "rule_id": "F02",
+      "provenance": "seed",
+      "description": "Return as integration where an existing block already realises the capability.",
+      "condition": "reuse_recommendation in ('reuse', 'integrate')",
+      "outcome": "return_as_integration",
+      "reason": "An existing realisation already covers this capability. This is an integration, not a build."
+    },
+    {
+      "rule_id": "F03",
+      "provenance": "seed",
+      "description": "Reject where the use case was framed as a solution rather than a problem, or where accountability is shared.",
+      "condition": "framing_rejection is not None",
+      "outcome": "reject",
+      "reason": "Step 3 could not frame a problem with a single accountable owner."
+    },
+    {
+      "rule_id": "F04",
+      "provenance": "seed",
+      "description": "Reject where no business function matched any capability in either direction.",
+      "condition": "coverage_map.matches == [] and coverage_map.unmatched_functions != []",
+      "outcome": "reject",
+      "reason": "No business function could be matched to an L3 capability. The use case sits outside the current capability map."
+    },
+    {
+      "rule_id": "F05",
+      "provenance": "seed",
+      "description": "Flag, but do not reject, where the data is not digitally available. This becomes a gate condition on the business case rather than a stop.",
+      "condition": "q24_data_readiness == 'No, work needed first'",
+      "outcome": "proceed",
+      "gate_condition": "Data is not digitally available. Year-1 operational saving carries the Appendix B discount and a data-readiness workstream must precede build.",
+      "reason": "Data readiness is a cost and timing factor, not a feasibility stop."
+    },
+    {
+      "rule_id": "F06",
+      "provenance": "seed",
+      "description": "Default outcome when no terminal rule triggers.",
+      "condition": "default",
+      "outcome": "proceed",
+      "reason": "Cheap derivation completed with a matched capability, a single accountable owner and a tolerable failure impact."
+    }
+  ]
+}

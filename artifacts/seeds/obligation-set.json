@@ -1,0 +1,28 @@
+{
+  "artifact_id": "obligation-set",
+  "version": "0.1.0-seed",
+  "status": "seed",
+  "note": "SEED. Step 19 has no detailed record in the final scope document. UNRESOLVED: the scope document says obligations G01-G26; Hamza's consolidated email says CAFE guardrails G01-G14. This seed uses G01-G14 numbering. CAFE M3 supersedes this entirely once the CAFE packet arrives - do not over-invest here.",
+  "guardrail_layers": {
+    "L1": "universal - residency, encryption, observability",
+    "L2": "AI-specific - eval, prompt versioning, content safety, trust boundary",
+    "L3": "group-specific",
+    "L4": "healthcare-conditional - PHI handling, DoH/HAAD"
+  },
+  "obligations": [
+    {"id": "G01", "title": "Signed manifests for all governed artifacts", "layer": "L1", "trigger": "always", "failure_mode": "Derivation runs on unverified governance content"},
+    {"id": "G02", "title": "In-region data residency (UAE)", "layer": "L1", "trigger": "always", "failure_mode": "Regulated data leaves jurisdiction", "note": "Requirement 12 - firm release prerequisite"},
+    {"id": "G03", "title": "Encryption in transit and at rest", "layer": "L1", "trigger": "always", "failure_mode": "Data exposed in storage or on the wire"},
+    {"id": "G04", "title": "Per-service workload identity, no shared account", "layer": "L1", "trigger": "always", "failure_mode": "Blast radius spans services on credential compromise"},
+    {"id": "G05", "title": "Full audit trail per case", "layer": "L1", "trigger": "always", "failure_mode": "Decision cannot be reconstructed or defended"},
+    {"id": "G06", "title": "Runtime observability and tracing", "layer": "L1", "trigger": "always", "failure_mode": "Failures are invisible until a human notices"},
+    {"id": "G07", "title": "PII detection and redaction on model egress", "layer": "L2", "trigger": "data_sensitivity in (confidential, regulated) or exposure == external", "failure_mode": "Personal data reaches a model provider"},
+    {"id": "G08", "title": "Content safety filtering", "layer": "L2", "trigger": "actor != system or audience != none", "failure_mode": "Harmful content reaches a user"},
+    {"id": "G09", "title": "Prompt and model version pinning", "layer": "L2", "trigger": "determinism in (D1, D2)", "failure_mode": "Output changes silently between runs - reproducibility lost"},
+    {"id": "G10", "title": "Structured output schema gate on every model response", "layer": "L2", "trigger": "determinism in (D1, D2)", "failure_mode": "Unvalidated model output enters the design pack"},
+    {"id": "G11", "title": "Retrieved content treated as data, never as instruction", "layer": "L2", "trigger": "step reads a retrieval contract", "failure_mode": "Prompt injection via grounded content"},
+    {"id": "G12", "title": "Evaluation set with a pass threshold before release", "layer": "L2", "trigger": "determinism in (D1, D2)", "failure_mode": "Quality regressions ship undetected"},
+    {"id": "G13", "title": "Human decision required before an irreversible commit", "layer": "L3", "trigger": "influence == determinative or reversibility == irreversible", "failure_mode": "An irreversible action is taken autonomously"},
+    {"id": "G14", "title": "PHI handling controls (DoH / HAAD)", "layer": "L4", "trigger": "org_unit == Clinical or 'Regulated' in sensitive_data", "failure_mode": "Protected health information handled outside clinical controls"}
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "artifact_id": "determinism-criteria-register",
+  "version": "0.1.0-seed",
+  "status": "seed",
+  "note": "SEED. v2.5 step 16 requires seven criteria and five counter-indicators, each with a test and a reducibility flag. The count is specified; the content is not. CAFE M1 (8 archetypes A1-A8 + determinism tiers D0-D3) supersedes this entirely - do not over-invest. Criteria 1-5 are irreducible; 6-7 are reducible where a rule exists or the ontology can be extended.",
+  "tiers": {
+    "D0": "Deterministic - the same input always yields the same output by rule",
+    "D1": "Guided-stochastic, bounded - a model proposes within a closed schema against retrieved data",
+    "D2": "Guided-stochastic, open - a model reasons over unbounded natural language within a declared graph"
+  },
+  "unresolved": "Hamza's email references CAFE tiers D0-D3. The final scope uses D0-D2. Confirm before Sprint 4.",
+  "criteria": [
+    {"id": "C1", "test": "The step requires interpretation of unstructured natural language.", "reducible": false},
+    {"id": "C2", "test": "The step requires judgement where no complete rule set exists.", "reducible": false},
+    {"id": "C3", "test": "The step must generalise to inputs not seen when the rules were written.", "reducible": false},
+    {"id": "C4", "test": "The step requires synthesis across several unrelated sources.", "reducible": false},
+    {"id": "C5", "test": "The step's output is prose intended for a human reader.", "reducible": false},
+    {"id": "C6", "test": "The step maps an input to one of a closed set of values.", "reducible": true, "reduction": "Replace with a lookup rule where the mapping can be enumerated."},
+    {"id": "C7", "test": "The step resolves a term that is undefined in the current ontology.", "reducible": true, "reduction": "Extend the ontology and replace with a deterministic resolution."}
+  ],
+  "counter_indicators": [
+    {"id": "X1", "test": "The step's output is consumed by a deterministic gate.", "implication": "Prefer D0 or tightly-schema'd D1 - a stochastic input to a deterministic gate undermines the gate."},
+    {"id": "X2", "test": "The step performs or triggers an irreversible effect.", "implication": "Non-D0 requires containment and a human decision before the commit."},
+    {"id": "X3", "test": "The step's output cannot be validated against any schema.", "implication": "Unbounded output - re-scope the step until it can be schema-gated."},
+    {"id": "X4", "test": "The step chooses which step runs next.", "implication": "FORBIDDEN. This is open-stochastic orchestration and escalates the whole solution to Board approval."},
+    {"id": "X5", "test": "The step reads content that a third party can influence.", "implication": "Retrieved content must be treated as data, never as instruction (G11)."}
+  ],
+  "necessity_test": "For each non-D0 step: is it irreducible on criteria C1-C5, or reducible on C6-C7 where a rule exists or the ontology can be extended? Record the outcome and re-tier where reducible.",
+  "governance_tier_aggregation": {
+    "deterministic": "All steps are D0.",
+    "guided_stochastic": "Non-D0 steps exist, but the graph is statically declared and no step selects its successor.",
+    "open_stochastic": "Any step selects its own successor at runtime. Requires Board approval."
+  }
+}

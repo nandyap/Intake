@@ -1,0 +1,74 @@
+{
+  "manifest_version": "0.1.0",
+  "generated": "2026-09-15",
+  "note": "SEED MANIFEST. Every entry with status 'seed' was authored by Microsoft Factory as a stand-in so the engine can run before M42 delivers the governed artifacts. Seeds are surfaced on every step output via ArtifactRef.is_seed and must be countersigned by M42 before any real derivation is published. Replacing a seed with a governed artifact is a version bump here and nothing else.",
+  "artifacts": {
+    "criticality-taxonomy": {
+      "path": "seeds/criticality-taxonomy.json",
+      "version": "0.1.0-seed",
+      "status": "seed",
+      "owner": "M42 Risk (to confirm)",
+      "derived_from": "Intake form Q18/Q19/Q20/Q22 risk signals",
+      "feeds_steps": [7, 13]
+    },
+    "feasibility-rules": {
+      "path": "seeds/feasibility-rules.json",
+      "version": "0.1.0-seed",
+      "status": "seed",
+      "owner": "M42 AI CoE (to confirm)",
+      "derived_from": "Sponsor directive (severe/permanent-harm rejection), plus Q22/Q24 signals",
+      "feeds_steps": [8]
+    },
+    "readiness-rules": {
+      "path": "seeds/readiness-rules.json",
+      "version": "0.1.0-seed",
+      "status": "seed",
+      "owner": "M42 AI CoE (to confirm)",
+      "derived_from": "v2.5 step 15 pass/conditional/fail semantics",
+      "feeds_steps": [15]
+    },
+    "determinism-criteria-register": {
+      "path": "seeds/determinism-criteria-register.json",
+      "version": "0.1.0-seed",
+      "status": "seed",
+      "owner": "M42 (CAFE M1 supersedes this)",
+      "derived_from": "v2.5 step 16 description: seven criteria, five counter-indicators",
+      "feeds_steps": [16],
+      "supersede_with": "CAFE_Framework M1 when the CAFE packet arrives"
+    },
+    "facet-schema": {
+      "path": "seeds/facet-schema.json",
+      "version": "0.1.0-seed",
+      "status": "seed",
+      "owner": "M42 Risk (to confirm)",
+      "derived_from": "v2.5 step 17: nine facets with a default per activity verb",
+      "feeds_steps": [17]
+    },
+    "obligation-set": {
+      "path": "seeds/obligation-set.json",
+      "version": "0.1.0-seed",
+      "status": "seed",
+      "owner": "M42 (CAFE M3 supersedes this)",
+      "derived_from": "CAFE guardrails G01-G14 per Hamza email; scope doc says G01-G26 (unresolved)",
+      "feeds_steps": [19],
+      "supersede_with": "CAFE_Framework M3"
+    },
+    "build-surface-matrix": {
+      "path": "seeds/build-surface-matrix.json",
+      "version": "0.1.0-seed",
+      "status": "seed",
+      "owner": "M42 (CAFE M2 supersedes this)",
+      "derived_from": "v2.5 step 20; AILZ handover deployed-resource list",
+      "feeds_steps": [20],
+      "supersede_with": "CAFE_Framework M2 decision tree"
+    },
+    "cost-anchors": {
+      "path": "seeds/cost-anchors.json",
+      "version": "1.0.0",
+      "status": "provided",
+      "owner": "M42",
+      "derived_from": "m42_use_cases_agent_requirements.docx Appendix B - real values, not a seed",
+      "feeds_steps": [23, 24]
+    }
+  }
+}

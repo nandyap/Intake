@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --m42-ink: #0b1929;
+  --m42-slate: #64748b;
+  --m42-line: #e2e8f0;
+  --m42-accent: #0f766e;
+}
+
+body {
+  background: #f8fafc;
+  color: var(--m42-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Determinism tier badges — D0 is code, D1/D2 are agentic. */
+.tier-D0 {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+.tier-D1 {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+.tier-D2 {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border-color: #ddd6fe;
+}

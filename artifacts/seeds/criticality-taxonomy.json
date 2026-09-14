@@ -1,0 +1,52 @@
+{
+  "artifact_id": "criticality-taxonomy",
+  "version": "0.1.0-seed",
+  "status": "seed",
+  "note": "SEED. v2.5 expects three classes, each with a dominant failure mode and a rigour level. Derived from the intake form's own risk signals so the mapping is defensible rather than invented. M42 Risk must confirm the class names, the boundaries and the rigour requirements.",
+  "classes": [
+    {
+      "band": "routine",
+      "dominant_failure_mode": "Recoverable operational inconvenience; the affected step can be repeated without lasting consequence.",
+      "rigour": "Standard review. Single approver. Post-hoc audit sampling.",
+      "q22_impact": ["Low"],
+      "indicative_error_tolerance": "error is absorbed by existing rework capacity"
+    },
+    {
+      "band": "significant",
+      "dominant_failure_mode": "Material financial, operational or reputational loss requiring deliberate remediation; recoverable but costly.",
+      "rigour": "Dual review. Named accountable owner. Full audit trail. Human approval before any write-back to a system of record.",
+      "q22_impact": ["Medium", "High"],
+      "indicative_error_tolerance": "error requires an explicit remediation path"
+    },
+    {
+      "band": "severe",
+      "dominant_failure_mode": "Severe or permanent harm to a person, or irreversible regulatory or clinical consequence.",
+      "rigour": "Mandatory human decision in the loop. Independent risk sign-off. No autonomous write-back. Continuous outcome assertion monitoring.",
+      "q22_impact": ["Critical"],
+      "indicative_error_tolerance": "no tolerance - an agentic realisation is rejected at step 8"
+    }
+  ],
+  "escalation_signals": {
+    "note": "Signals that raise the band above what Q22 alone implies. A band is never lowered by these.",
+    "sensitive_data_present": {
+      "source": "Q19",
+      "values": ["PII", "Financial", "Regulated", "Confidential internal"],
+      "effect": "raise routine to significant"
+    },
+    "mandatory_human_sign_off": {
+      "source": "Q20",
+      "values": ["Mandatory human approval"],
+      "effect": "raise routine to significant"
+    },
+    "writes_to_system_of_record": {
+      "source": "Q12b",
+      "values": ["EMR", "ERP", "HRIS"],
+      "effect": "raise routine to significant"
+    },
+    "clinical_context": {
+      "source": "Q0",
+      "values": ["Clinical"],
+      "effect": "raise significant to severe when combined with a High or Critical Q22 impact"
+    }
+  }
+}

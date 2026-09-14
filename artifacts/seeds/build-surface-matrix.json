@@ -1,0 +1,67 @@
+{
+  "artifact_id": "build-surface-matrix",
+  "version": "0.1.0-seed",
+  "status": "seed",
+  "note": "SEED. Combines v2.5 step 20's 'build surface matrix' and 'surface enforceability matrix'. Surfaces and hosting are taken from the AILZ handover document's deployed-resource list so the options are real for this tenant. CAFE M2's three-stage decision tree (tier -> archetype -> build surface) supersedes the selection logic once the CAFE packet arrives.",
+  "enforceability_values": ["native", "conditional", "unavailable"],
+  "surfaces": [
+    {
+      "surface": "self_hosted_maf_aca",
+      "label": "Self-hosted Microsoft Agent Framework on Azure Container Apps",
+      "when_to_use": "A deterministic orchestrator must own every transition; per-service workload identity is required; portability matters.",
+      "hosting": "Azure Container Apps environment (workload profile, internal ingress)",
+      "enforceability": {
+        "G01": "native", "G02": "native", "G03": "native", "G04": "native",
+        "G05": "native", "G06": "native", "G07": "conditional", "G08": "conditional",
+        "G09": "native", "G10": "native", "G11": "native", "G12": "conditional",
+        "G13": "native", "G14": "conditional"
+      },
+      "conditional_notes": {
+        "G07": "Requires the Presidio PII gateway in the egress path",
+        "G08": "Requires content safety on the APIM AI Gateway",
+        "G12": "Requires the Foundry evaluation harness",
+        "G14": "Requires clinical controls configured on the data plane"
+      }
+    },
+    {
+      "surface": "foundry_hosted_agents",
+      "label": "Azure AI Foundry hosted agents",
+      "when_to_use": "Rapid assembly where the orchestrator need not be owned and a shared identity is acceptable.",
+      "hosting": "AI Foundry project (deployed as a platform placeholder)",
+      "enforceability": {
+        "G01": "conditional", "G02": "native", "G03": "native", "G04": "unavailable",
+        "G05": "conditional", "G06": "native", "G07": "conditional", "G08": "native",
+        "G09": "conditional", "G10": "native", "G11": "conditional", "G12": "native",
+        "G13": "conditional", "G14": "conditional"
+      },
+      "rejected_for_this_solution": "G04 unavailable - per-service workload identity cannot be enforced. v2.5 selects self-hosted MAF for this reason."
+    },
+    {
+      "surface": "copilot_studio_power_platform",
+      "label": "Copilot Studio + Power Automate + Dataverse",
+      "when_to_use": "Conversational front door with low-code flows where process logic is simple and governance is light.",
+      "hosting": "Power Platform (M42 tenant)",
+      "enforceability": {
+        "G01": "unavailable", "G02": "conditional", "G03": "native", "G04": "unavailable",
+        "G05": "conditional", "G06": "conditional", "G07": "unavailable", "G08": "native",
+        "G09": "unavailable", "G10": "conditional", "G11": "unavailable", "G12": "unavailable",
+        "G13": "native", "G14": "unavailable"
+      },
+      "rejected_for_this_solution": "Process logic cannot be held in a single transition authority; G07 and G11 unavailable. This was the rejected POC surface."
+    },
+    {
+      "surface": "incumbent_platform_extension",
+      "label": "Extension point on an incumbent platform that already owns the workflow",
+      "when_to_use": "EVALUATE FIRST. Where an incumbent already owns the workflow graph and the system of record, its extension point must be evaluated on equal terms before any new surface is selected.",
+      "hosting": "varies",
+      "enforceability": "per-incumbent - must be assessed, never assumed",
+      "note": "v2.5 step 20: where an incumbent is rejected, record which obligations it failed."
+    }
+  ],
+  "selection_rules": [
+    "Evaluate the incumbent platform first; record which obligations it failed if rejected.",
+    "A surface that cannot enforce a required obligation natively or conditionally is eliminated.",
+    "Where no surface enforces every obligation, return to step 17 and re-examine the facet assignment rather than choosing a different runtime.",
+    "Record every conditional obligation as requiring an additional component - those components become cost lines."
+  ]
+}
