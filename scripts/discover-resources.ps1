@@ -1,13 +1,15 @@
 <#
 .SYNOPSIS
-    Discover the deployed AILZ resources and write infra/main.parameters.json.
+    Discover landing-zone resource names and set them as azd environment
+    variables.
 
 .DESCRIPTION
-    The application Bicep references existing landing-zone resources by name.
-    Rather than guessing those names, this script reads them from the
-    resource group and writes a parameters file.
+    The application Bicep references existing landing-zone resources by
+    name. Rather than typing those names, this script reads them from the
+    resource group and runs `azd env set` for each.
 
-    Run this BEFORE any deployment. It is read-only — it creates nothing.
+    Read-only against Azure; it creates nothing. Values are written to
+    .azure/<env>/.env, which is gitignored.
 
 .EXAMPLE
     ./scripts/discover-resources.ps1 -SubscriptionId <guid> -ResourceGroup <rg>
@@ -19,14 +21,12 @@ param(
     [string]$SubscriptionId,
 
     [Parameter(Mandatory)]
-    [string]$ResourceGroup,
-
-    [string]$OutFile = "$PSScriptRoot/../infra/main.parameters.json"
+    [string]$ResourceGroup
 )
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "Subscription : $SubscriptionId"
+Write-Host "Subscription  : $SubscriptionId"
 Write-Host "Resource group: $ResourceGroup"
 Write-Host ''
 
@@ -39,14 +39,13 @@ if (-not $resources) {
     throw "No resources found in $ResourceGroup. Check the name and your access."
 }
 
-Write-Host "Found $($resources.Count) resources:" -ForegroundColor Cyan
-$resources | Sort-Object type | Format-Table -AutoSize
+Write-Host "Found $($resources.Count) resources." -ForegroundColor Cyan
 
 function Get-One {
     param([string]$Type, [string]$Label)
     $match = @($resources | Where-Object { $_.type -eq $Type })
     if ($match.Count -eq 0) {
-        Write-Warning "$Label not found (type $Type) - parameter left blank"
+        Write-Warning "$Label not found (type $Type)"
         return ''
     }
     if ($match.Count -gt 1) {
@@ -56,42 +55,31 @@ function Get-One {
 }
 
 $discovered = [ordered]@{
-    containerAppsEnvironmentName = Get-One 'Microsoft.App/managedEnvironments'          'Container Apps Environment'
-    cosmosAccountName            = Get-One 'Microsoft.DocumentDB/databaseAccounts'      'Cosmos DB account'
-    keyVaultName                 = Get-One 'Microsoft.KeyVault/vaults'                  'Key Vault'
-    searchServiceName            = Get-One 'Microsoft.Search/searchServices'            'AI Search'
+    AZURE_LANDING_ZONE_RG         = $ResourceGroup
+    AZURE_LOCATION                = ($resources | Select-Object -First 1).location
+    AZURE_CONTAINER_APPS_ENV_NAME = Get-One 'Microsoft.App/managedEnvironments'     'Container Apps Environment'
+    AZURE_COSMOSDB_ACCOUNT_NAME   = Get-One 'Microsoft.DocumentDB/databaseAccounts' 'Cosmos DB account'
+    AZURE_KEY_VAULT_NAME          = Get-One 'Microsoft.KeyVault/vaults'             'Key Vault'
+    AZURE_SEARCH_SERVICE_NAME     = Get-One 'Microsoft.Search/searchServices'       'AI Search'
+    AZURE_APP_INSIGHTS_NAME       = Get-One 'Microsoft.Insights/components'         'Application Insights'
 }
-
-$location = ($resources | Select-Object -First 1).location
 
 Write-Host ''
-Write-Host 'Resolved parameters:' -ForegroundColor Green
-$discovered.GetEnumerator() | ForEach-Object {
-    $value = if ($_.Value) { $_.Value } else { '<MISSING>' }
-    Write-Host ("  {0,-30} {1}" -f $_.Key, $value)
-}
-Write-Host ("  {0,-30} {1}" -f 'location', $location)
-
-$parameters = [ordered]@{
-    '$schema'      = 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
-    contentVersion = '1.0.0.0'
-    parameters     = [ordered]@{
-        environmentName = @{ value = 'dev' }
-        location        = @{ value = $location }
-    }
-}
+Write-Host 'Setting azd environment variables:' -ForegroundColor Green
 foreach ($entry in $discovered.GetEnumerator()) {
-    $parameters.parameters[$entry.Key] = @{ value = $entry.Value }
+    if (-not $entry.Value) {
+        Write-Warning ("  {0,-30} <MISSING - set manually>" -f $entry.Key)
+        continue
+    }
+    Write-Host ("  {0,-30} {1}" -f $entry.Key, $entry.Value)
+    azd env set $entry.Key $entry.Value | Out-Null
 }
 
-$parameters | ConvertTo-Json -Depth 6 | Set-Content -Path $OutFile -Encoding utf8
-
 Write-Host ''
-Write-Host "Written to $OutFile" -ForegroundColor Green
+Write-Host 'Done. Review with: azd env get-values' -ForegroundColor Green
 
 $missing = @($discovered.GetEnumerator() | Where-Object { -not $_.Value })
 if ($missing) {
-    Write-Host ''
-    Write-Warning "$($missing.Count) parameter(s) could not be resolved. Fill them in manually before deploying."
+    Write-Warning "$($missing.Count) value(s) unresolved. Set them with 'azd env set' before deploying."
     exit 1
 }

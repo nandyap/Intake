@@ -1,0 +1,90 @@
+# azure.yaml — Azure Developer CLI configuration
+#
+# Deploys into an EXISTING AI Landing Zone resource group. Nothing
+# foundational is created; see infra/app.bicep.
+#
+# Images are built server-side by ACR Tasks (remoteBuild), so no local
+# Docker daemon is required. Set remoteBuild to false to build locally
+# with Docker Desktop instead.
+
+name: m42-intake-agent
+metadata:
+  template: m42-intake-agent@0.1.0
+
+# Deploy into the existing landing-zone resource group rather than one azd
+# creates. Set with:  azd env set AZURE_LANDING_ZONE_RG <name>
+resourceGroup: ${AZURE_LANDING_ZONE_RG}
+
+requiredVersions:
+  azd: ">= 1.11.0"
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+hooks:
+  # On the very first provision the container apps reference an image that
+  # has not been pushed yet. Import a known-good placeholder so they can
+  # reach a Running state; `azd deploy` replaces it moments later.
+  preprovision:
+    shell: pwsh
+    continueOnError: true
+    run: |
+      $acr = $env:AZURE_CONTAINER_REGISTRY_NAME
+      if (-not $acr) {
+        Write-Host "Registry not provisioned yet — skipping placeholder import."
+        exit 0
+      }
+      $null = az acr repository show --name $acr --image "placeholder:latest" 2>&1
+      if ($LASTEXITCODE -eq 0) {
+        Write-Host "Placeholder already present in $acr."
+        exit 0
+      }
+      Write-Host "Importing placeholder image into $acr ..."
+      az acr import --name $acr `
+        --source "mcr.microsoft.com/k8se/quickstart:latest" `
+        --image "placeholder:latest" 2>&1 | Out-Null
+      exit 0
+
+  postprovision:
+    shell: pwsh
+    continueOnError: true
+    run: |
+      Write-Host ""
+      Write-Host "Backend : $env:BACKEND_URL"
+      Write-Host "Frontend: $env:FRONTEND_URL"
+      Write-Host ""
+      if (-not $env:COMPASS_SECRET_NAME) {
+        Write-Host "Running in STUB MODE — no Compass secret configured."
+        Write-Host "The full 3-22 graph, all four gates and every deterministic"
+        Write-Host "service still execute; agentic steps return placeholders."
+        Write-Host ""
+        Write-Host "To enable real agents:"
+        Write-Host "  az keyvault secret set --vault-name $env:AZURE_KEY_VAULT_NAME --name compass-api-key --value <key>"
+        Write-Host "  azd env set COMPASS_SECRET_NAME compass-api-key"
+        Write-Host "  azd provision"
+      }
+      Write-Host "Note: the Container Apps environment is internal — reach it"
+      Write-Host "from a jumpbox inside the VNet (Azure Bastion)."
+
+services:
+  backend:
+    project: ./backend
+    host: containerapp
+    language: python
+    docker:
+      path: ./Dockerfile
+      # Build context is the repo root so the image can include
+      # artifacts/ alongside backend/.
+      context: ../
+      remoteBuild: true
+
+  frontend:
+    project: ./frontend
+    host: containerapp
+    language: ts
+    docker:
+      path: ./Dockerfile
+      context: .
+      remoteBuild: true

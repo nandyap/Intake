@@ -3,8 +3,12 @@
 #
 # This repository is public. Anything identifying a customer tenant,
 # subscription, resource, or individual stays local.
+#
+# Note: infra/main.parameters.json IS committed. Under azd every value in
+# it is a ${ENV_VAR} reference, so it carries no tenant data. The real
+# values live in .azure/<env>/.env, excluded below.
 # ---------------------------------------------------------------------------
-infra/main.parameters.json
+.azure/
 *.local.md
 *.docx
 *.doc
@@ -21,7 +25,6 @@ infra/main.parameters.json
 *.pem
 *.key
 *.pfx
-.azure/
 
 # ---------------------------------------------------------------------------
 # Python

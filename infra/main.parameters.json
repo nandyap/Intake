@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+
+  "_comment": [
+    "Every value is an azd environment-variable reference — this file",
+    "contains no tenant data and is safe to commit.",
+    "",
+    "Real values live in .azure/<env>/.env, which is gitignored.",
+    "Set them with:  azd env set <NAME> <value>",
+    "",
+    "The ${VAR=default} form supplies a fallback when the variable is unset."
+  ],
+
+  "parameters": {
+    "environmentName": { "value": "${AZURE_ENV_NAME}" },
+    "location": { "value": "${AZURE_LOCATION}" },
+    "resourceGroupName": { "value": "${AZURE_LANDING_ZONE_RG}" },
+
+    "containerAppsEnvironmentName": { "value": "${AZURE_CONTAINER_APPS_ENV_NAME}" },
+    "cosmosAccountName": { "value": "${AZURE_COSMOSDB_ACCOUNT_NAME}" },
+    "keyVaultName": { "value": "${AZURE_KEY_VAULT_NAME}" },
+    "searchServiceName": { "value": "${AZURE_SEARCH_SERVICE_NAME}" },
+    "appInsightsName": { "value": "${AZURE_APP_INSIGHTS_NAME}" },
+
+    "backendImage": { "value": "${SERVICE_BACKEND_IMAGE_NAME}" },
+    "frontendImage": { "value": "${SERVICE_FRONTEND_IMAGE_NAME}" },
+
+    "compassBaseUrl": { "value": "${COMPASS_API_BASE_URL=https://api.core42.ai/v1}" },
+    "compassSecretName": { "value": "${COMPASS_SECRET_NAME=}" }
+  }
+}
