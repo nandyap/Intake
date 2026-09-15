@@ -7,6 +7,10 @@ an initial business case, behind human decision gates.
 **The outcome is a decision, not a design.** The architecture exists to make the
 cost estimate real.
 
+> **New here?** Read [docs/Solution-Overview.md](docs/Solution-Overview.md) —
+> what this solves and how it works, non-technical first, then the
+> architecture. For deployment see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ---
 
 ## Architecture
@@ -21,7 +25,9 @@ Next.js frontend  ──proxy──▶  FastAPI  ──▶  MAF static workflow 
                     │                           │
                     └──── schema gate ──────────┘
                                 │
-                          Design pack (Cosmos)
+                          Design pack
+                    (in memory; Cosmos containers
+                     provisioned, store not yet wired)
 ```
 
 **The determinism boundary is the anchor.** The typed workflow decides every
