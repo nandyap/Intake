@@ -180,16 +180,74 @@ such.
 
 ## Verifying
 
-If the Container Apps environment is internal, reach it from a jumpbox
-inside the VNet (Azure Bastion is the usual route). `azd` prints both
-URLs after deployment.
+`azd` prints both URLs after deployment. Work through these in order —
+each step is cheaper than the one after it.
 
-```bash
-curl https://<backend-fqdn>/api/health      # expect mode=stub
-curl https://<backend-fqdn>/api/artifacts   # governed vs seed artifacts
+### 1 · Are the containers actually running?
+
+No VM needed. Do this first: if an app is crash-looping, no amount of
+network plumbing will help.
+
+```powershell
+az containerapp revision list -n <backend-app> -g <rg> `
+  --query "[].{name:name, active:properties.active, state:properties.runningState, replicas:properties.replicas}" -o table
+
+az containerapp logs show -n <backend-app> -g <rg> --tail 50
 ```
 
-Then open the frontend, submit a use case, and walk the four gates.
+### 2 · Does the backend answer, from inside the environment?
+
+Still no VM. `exec` opens a shell in the running container:
+
+```powershell
+az containerapp exec -n <frontend-app> -g <rg> --command sh
+# then, inside:
+wget -qO- http://<backend-app>/api/health
+```
+
+A healthy reply here means the app, the internal ingress and
+service-to-service networking are all working. Everything after this is
+purely about *your* access to it.
+
+### 3 · Private DNS — the usual blocker
+
+The Container Apps environment is **internal**, so its apps resolve only
+inside the VNet, and only if a Private DNS Zone exists for the
+environment's default domain.
+
+```powershell
+./scripts/setup-private-dns.ps1 -ResourceGroup <rg> -CheckOnly
+```
+
+If it reports missing pieces, re-run without `-CheckOnly` to create them.
+That changes shared landing-zone networking, so get it approved first.
+
+### 4 · A jumpbox to view the UI
+
+Only now is a VM worth building. Put a small Windows VM in a subnet of
+the same VNet and connect through the existing Azure Bastion, then browse
+to the frontend URL.
+
+```powershell
+az vm create `
+  --resource-group <rg> --name vm-intake-jump `
+  --image Win2022Datacenter --size Standard_B2s `
+  --vnet-name <vnet> --subnet <subnet> `
+  --public-ip-address '""' `
+  --admin-username <user>
+```
+
+`--public-ip-address '""'` is deliberate: Bastion provides access, so the
+VM needs no public IP.
+
+Do not put the VM in the Container Apps infrastructure subnet — it is
+delegated and will reject it. Use the private-endpoint subnet or add a
+small dedicated one.
+
+If DNS is still not in place and you only need a quick look, add a hosts
+entry on the VM pointing the app FQDN at the environment's static IP
+(`az containerapp env show ... --query properties.staticIp`). That is a
+workaround for one machine, not a fix.
 
 ---
 
@@ -203,6 +261,9 @@ Then open the frontend, submit a use case, and walk the four gates.
 | `azd provision --preview` shows deletes | Something unexpected about the landing zone | **Stop** and investigate before applying |
 | `docker: command not found` / "failed to connect to Docker" during `azd deploy` | Remote build failed and azd fell back to local | Use `./scripts/build-images.ps1` |
 | `az acr build` fails with a registry network error | ACR public access disabled, or the build agent is blocked | Confirm `allowRegistryPublicAccess` is `true` for now |
+| Frontend URL does not load at all | The environment is internal — the URL is not public | Reach it from inside the VNet; see [Verifying](#verifying) |
+| Frontend URL does not resolve *from a VM in the VNet* | No Private DNS Zone for the environment domain | `./scripts/setup-private-dns.ps1` |
+| Frontend loads but shows "Backend unreachable" | Backend app not running, or the frontend's `BACKEND_URL` is wrong | Check backend logs; confirm the env var on the frontend revision |
 
 ---
 
