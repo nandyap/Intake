@@ -62,6 +62,12 @@ export default function RunPage({
             {run.tracking_reference}
           </h1>
           <StatusBadge status={run.status} />
+          <a
+            href={`/runs/${ref}/design`}
+            className="ml-auto rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+          >
+            View design pack
+          </a>
         </div>
         <p className="text-sm text-slate-500">
           {run.steps_completed.length} of 19 steps · {run.gap_flag_count} gap

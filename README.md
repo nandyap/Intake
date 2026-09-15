@@ -1,15 +1,20 @@
 # M42 Intake Agent — Phase 1
 
 CAFÉ derivation for AI use cases, steps 3 to 22. A business team submits a use
-case; the system derives a composed architecture, a control requirement set and
-an initial business case, behind human decision gates.
+case; the system produces a **scoping-grade design pack** — capability coverage,
+reuse analysis, workflow, risk classification, derived controls, build surface,
+component selection and a composed architecture — together with an initial
+business case and a funding recommendation, behind human decision gates.
 
-**The outcome is a decision, not a design.** The architecture exists to make the
-cost estimate real.
+The design is what makes the cost real: cost is the sum of the components the
+design switched on. **A design that is sound but does not repay its cost is a
+correct output** — a decision not to build, reached with the evidence to
+support it.
 
 > **New here?** Read [docs/Solution-Overview.md](docs/Solution-Overview.md) —
 > what this solves and how it works, non-technical first, then the
-> architecture. For deployment see [DEPLOYMENT.md](DEPLOYMENT.md).
+> architecture. For deployment see [DEPLOYMENT.md](DEPLOYMENT.md), and to
+> run it on a laptop see [docs/Local-Demo.md](docs/Local-Demo.md).
 
 ---
 

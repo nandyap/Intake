@@ -97,6 +97,96 @@ export interface Health {
   seeds_allowed: boolean;
 }
 
+export interface SampleSummary {
+  id: string;
+  label: string;
+  expect: string;
+  why: string;
+}
+
+/** The scoping-grade deliverable, shaped for reading. */
+export interface DesignPack {
+  tracking_reference: string;
+  status: RunStatus;
+  is_complete: boolean;
+  framing: {
+    problem_statement: string | null;
+    accountable_owner: string | null;
+    expected_change: string | null;
+  };
+  capability_coverage: {
+    matched: { business_function: string; l3_capability_name: string }[];
+    unmatched_functions: string[];
+  };
+  reuse: {
+    recommendation: string | null;
+    rationale: string | null;
+    entries: { element: string; realisation: string; confidence: string }[];
+  };
+  risk: {
+    criticality_band: string | null;
+    dominant_failure_mode: string | null;
+    per_step: { node_id: string; exposure: string; influence: string }[];
+  };
+  gates: {
+    feasibility: {
+      outcome: string | null;
+      reasons: string[];
+      rules: {
+        rule_id: string;
+        description: string;
+        provenance: string;
+        triggered: boolean;
+        detail: string;
+      }[];
+    };
+    readiness: { outcome: string | null; conditions: string[] };
+  };
+  workflow: {
+    nodes: { node_id: string; activity_verb: string; performing_element: string }[];
+    edges: { from_node: string; to_node: string; data_class: string }[];
+    governance_tier: string | null;
+  };
+  quality_attributes: Record<string, unknown>[];
+  assertions: Record<string, unknown>[];
+  controls: { obligation_id: string; title: string; applies_to_nodes: string[] }[];
+  architecture: {
+    build_surface: string | null;
+    build_surface_rationale: string | null;
+    conditional_obligations: string[];
+    components: { capability: string; chosen_name: string; rationale: string }[];
+    decision_records: Record<string, unknown>[];
+    conformance_validated: boolean;
+    conformance_violations: string[];
+  };
+  business_case: {
+    recommendation?: string;
+    annual_value?: number | null;
+    annual_operational_saving?: number | null;
+    annual_quality_saving?: number | null;
+    currency?: string;
+    narrative?: string;
+    gate_conditions?: string[];
+    lines?: {
+      label: string;
+      value: number | null;
+      bucket: string;
+      formula: string;
+      source: string;
+      requires_input: boolean;
+    }[];
+    positions?: {
+      role: string;
+      headcount: number;
+      annual_hours: number | null;
+      annual_cost: number | null;
+      annual_saving: number | null;
+      requires_input: boolean;
+    }[];
+  };
+  gap_flags: GapFlag[];
+}
+
 /** Step metadata — the owning bounded context and determinism tier. */
 export const STEP_META: Record<number, { name: string; owner: string }> = {
   3: { name: "Frame use case", owner: "Business Analyst" },
@@ -152,6 +242,14 @@ export const api = {
 
   getPack: (ref: string) =>
     request<Record<string, unknown>>(`/api/runs/${ref}/pack`),
+
+  getDesign: (ref: string) => request<DesignPack>(`/api/runs/${ref}/design`),
+
+  listSamples: () =>
+    request<{ samples: SampleSummary[] }>("/api/samples"),
+
+  getSample: (id: string) =>
+    request<Record<string, unknown>>(`/api/samples/${id}`),
 
   submit: (payload: Record<string, unknown>) =>
     request<RunSummary>("/api/submissions", {

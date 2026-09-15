@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { api } from "@/lib/api";
+import { api, type SampleSummary } from "@/lib/api";
 
 /**
  * Submission form — Appendix A, Q0–Q30.
@@ -16,6 +16,28 @@ export default function SubmitPage() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [samples, setSamples] = useState<SampleSummary[]>([]);
+
+  useEffect(() => {
+    api
+      .listSamples()
+      .then((r) => setSamples(r.samples))
+      .catch(() => setSamples([]));
+  }, []);
+
+  /** Submit a worked example directly, skipping the form. */
+  async function runSample(id: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const payload = await api.getSample(id);
+      const run = await api.submit(payload);
+      router.push(`/runs/${run.tracking_reference}`);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -88,6 +110,35 @@ export default function SubmitPage() {
           whole derivation.
         </p>
       </header>
+
+      {samples.length > 0 && (
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-slate-700">
+            Worked examples
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Run a prepared submission instead of filling the form. Each one
+            takes a different path through the derivation.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {samples.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                disabled={busy}
+                onClick={() => runSample(s.id)}
+                title={s.why}
+                className="rounded border border-slate-200 p-3 text-left transition hover:border-teal-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                <div className="text-sm font-medium text-slate-800">
+                  {s.label}
+                </div>
+                <div className="mt-1 text-xs text-teal-700">{s.expect}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <Section title="Org and submitter" sub="Q0–Q4">
         <Select name="q0" label="Q0 · Part of the org" options={ORG} />

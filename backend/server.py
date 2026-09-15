@@ -29,6 +29,7 @@ from contracts.verdicts import (
 )
 from knowledge.retrieval import ArtifactUnavailable, get_store
 from runs import Run, manager, new_tracking_reference
+import samples
 
 logging.basicConfig(
     level=logging.INFO,
@@ -132,6 +133,29 @@ async def artifacts() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Example submissions
+# ---------------------------------------------------------------------------
+
+@app.get("/api/samples")
+async def list_samples() -> dict[str, Any]:
+    """Example submissions, for demonstrations and manual testing.
+
+    Each one exercises a different path: proceed, reject at the
+    feasibility gate, or proceed-with-conditions.
+    """
+    return {"samples": samples.list_samples()}
+
+
+@app.get("/api/samples/{sample_id}")
+async def get_sample(sample_id: str) -> dict[str, Any]:
+    """A full submission payload, ready to post to /api/submissions."""
+    payload = samples.get_sample(sample_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="unknown sample")
+    return payload
+
+
+# ---------------------------------------------------------------------------
 # Steps 1-2 — receive, validate, persist, issue tracking reference
 # ---------------------------------------------------------------------------
 
@@ -221,6 +245,97 @@ async def get_timeline(tracking_reference: str) -> dict[str, Any]:
         "steps": steps,
         "history": run.pack.history,
         "gap_flags": [g for g in run.pack.model_dump(mode="json")["gap_flags"]],
+    }
+
+
+@app.get("/api/runs/{tracking_reference}/design")
+async def get_design(tracking_reference: str) -> dict[str, Any]:
+    """The design pack, shaped for reading rather than for machines.
+
+    This is the scoping-grade deliverable: capability coverage, reuse
+    analysis, the workflow, risk classification, derived controls, the
+    build surface, component selection and the composed architecture —
+    plus the business case and the recommendation it supports.
+    """
+    run = manager.get(tracking_reference)
+    if run is None:
+        raise HTTPException(status_code=404, detail="unknown tracking reference")
+
+    pack = run.pack
+    get = pack.get
+
+    use_case = get(3) or {}
+    coverage = get(5) or {}
+    realisation = get(6) or {}
+    criticality = get(7) or {}
+    feasibility = get(8) or {}
+    quality = get(9) or {}
+    workflow = get(11) or {}
+    assertions = get(14) or {}
+    readiness = get(15) or {}
+    determinism = get(16) or {}
+    risk = get(18) or {}
+    controls = get(19) or {}
+    surface = get(20) or {}
+    components = get(21) or {}
+    architecture = get(22) or {}
+
+    return {
+        "tracking_reference": tracking_reference,
+        "status": pack.status.value,
+        "is_complete": bool(architecture),
+        "framing": {
+            "problem_statement": use_case.get("problem_statement"),
+            "accountable_owner": use_case.get("accountable_owner"),
+            "expected_change": use_case.get("expected_change"),
+        },
+        "capability_coverage": {
+            "matched": coverage.get("matches", []),
+            "unmatched_functions": coverage.get("unmatched_functions", []),
+        },
+        "reuse": {
+            "recommendation": realisation.get("reuse_recommendation"),
+            "rationale": realisation.get("reuse_rationale"),
+            "entries": realisation.get("entries", []),
+        },
+        "risk": {
+            "criticality_band": criticality.get("band"),
+            "dominant_failure_mode": criticality.get("dominant_failure_mode"),
+            "per_step": risk.get("classes", []),
+        },
+        "gates": {
+            "feasibility": {
+                "outcome": feasibility.get("outcome"),
+                "reasons": feasibility.get("reasons", []),
+                "rules": feasibility.get("rules_evaluated", []),
+            },
+            "readiness": {
+                "outcome": readiness.get("outcome"),
+                "conditions": readiness.get("conditions", []),
+            },
+        },
+        "workflow": {
+            "nodes": workflow.get("nodes", []),
+            "edges": workflow.get("edges", []),
+            "governance_tier": determinism.get("governance_tier"),
+        },
+        "quality_attributes": quality.get("scenarios", []),
+        "assertions": assertions.get("assertions", []),
+        "controls": controls.get("obligations", []),
+        "architecture": {
+            "build_surface": surface.get("surface"),
+            "build_surface_rationale": surface.get("rationale"),
+            "conditional_obligations": surface.get("conditional_obligations", []),
+            "components": components.get("components", []),
+            "decision_records": components.get("decision_records", []),
+            "conceptual": architecture.get("conceptual", {}),
+            "logical": architecture.get("logical", {}),
+            "physical": architecture.get("physical", {}),
+            "conformance_validated": architecture.get("conformance_validated", False),
+            "conformance_violations": architecture.get("conformance_violations", []),
+        },
+        "business_case": pack.outputs.get("initial_business_case", {}),
+        "gap_flags": pack.model_dump(mode="json")["gap_flags"],
     }
 
 

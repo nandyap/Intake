@@ -9,6 +9,7 @@ is non-technical; sections 3 onward assume architecture familiarity.
 |---|---|
 | Status | Deployed to the landing zone, running in stub mode |
 | Scope | CAFÉ derivation steps 3–22 (19 of the 27-step flow) |
+| Produces | A scoping-grade design pack and a funding recommendation |
 | Code | ~4,700 lines Python · ~1,300 lines TypeScript |
 | Verified | Full-graph run · sponsor rejection rule · reproducibility · HTTP surface |
 | Not yet real | 7 of 8 governed artifacts are seeds; agentic steps return placeholders |
@@ -49,16 +50,41 @@ controls that follow from that risk, the platform to build on, the
 components to use, and finally an architecture — which an architect
 approves, rejects, or sends back for another pass.
 
-### The output is a decision, not a design
+### What it produces
 
-The architecture is not the point. It exists to make the cost estimate
-real: the cost is the sum of the components the design switched on. The
-point is a recommendation — proceed, proceed with conditions, or defer.
+Two things, and both matter.
 
-**An idea that is technically sound but does not repay its cost is a
-correct output of this system.** So is a rejection.
+**A scoping-grade design.** By the end the system has produced what an
+SA would produce up to the scoping stage: which capabilities are
+involved, what already exists and could be reused, the workflow itself,
+the risk classification, the controls that follow from it, the platform
+to build on, the components selected with the tradeoffs recorded, and a
+composed architecture in conceptual, logical and physical views.
+
+That is real analysis and design work. It is not a deep design document
+and not an implementation plan — it is deliberately scoped to the depth
+needed to cost the thing and decide on it. It is also a handoff artifact:
+it is what the downstream build process picks up.
+
+**A recommendation.** Proceed, proceed with conditions, or defer —
+weighing quantified benefit against investment.
+
+The relationship between the two is the point. The design is what makes
+the cost real: the cost is the sum of the components the design switched
+on. You cannot produce a defensible number without doing the design work
+first.
+
+And the recommendation can still be *no*. **A design that is sound but
+does not repay its cost is a correct output of this system** — a decision
+not to build, reached with the evidence to support it. So is a rejection
+at the feasibility gate.
 
 ### Why build it rather than keep using architects
+
+The point is not that architects cannot do this — it is the work they
+already do. The point is that doing it this way makes it repeatable and
+comparable, and frees architect time for the cases that genuinely need
+judgement.
 
 | | |
 |---|---|
