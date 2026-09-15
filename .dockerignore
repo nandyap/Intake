@@ -1,12 +1,38 @@
+# Build context for the backend image is the repository root, so this file
+# governs what gets uploaded to ACR. Keep it tight: everything here is
+# either irrelevant to the image, or must never be baked into one.
+
+# Tenant configuration and secrets — never into an image
+.azure
+**/.env
+!**/.env.example
+**/*.local.md
+
+# Not needed by the backend image
+frontend
+infra
+scripts
+docs
+.github
+*.md
+
+# Python build noise
 **/__pycache__
-**/*.pyc
+**/*.py[cod]
 **/.venv
 **/venv
-**/.env
+**/.pytest_cache
+**/.mypy_cache
 **/.state
+
+# Node build noise — large, would slow the ACR upload
 **/node_modules
 **/.next
+**/out
+
+# VCS and editor
 .git
-frontend
-docs
-scripts
+.gitignore
+**/.DS_Store
+**/.vscode
+**/.idea

@@ -1,7 +1,16 @@
+# Uploaded to ACR as the frontend build context — keep it small.
+# node_modules and .next are rebuilt inside the image.
+
 node_modules
 .next
-.git
+out
+
 .env
-.env.local
-npm-debug.log*
+.env.*
+!.env.example
+
+.git
+.gitignore
 README.md
+**/.DS_Store
+**/.vscode

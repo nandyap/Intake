@@ -1,7 +1,9 @@
-# syntax=docker/dockerfile:1
-#
 # Backend — FastAPI + Microsoft Agent Framework.
 # Runs as a non-root user; no secrets baked in (managed identity at runtime).
+#
+# Deliberately plain Dockerfile syntax — no BuildKit-only features and no
+# `# syntax=` frontend directive — so it builds identically under ACR Tasks
+# (server-side, no local Docker) and under a local Docker daemon.
 
 FROM python:3.12-slim
 

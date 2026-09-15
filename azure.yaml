@@ -69,21 +69,26 @@ hooks:
       Write-Host "from a jumpbox inside the VNet (Azure Bastion)."
 
 services:
+  # `language: docker` is deliberate. Declaring python/ts here would make
+  # azd run a local restore (pip install / npm ci) before packaging, which
+  # would require Python and Node on the operator's machine. Treating both
+  # services as containers means the ONLY build happens inside ACR.
   backend:
     project: ./backend
     host: containerapp
-    language: python
+    language: docker
     docker:
       path: ./Dockerfile
       # Build context is the repo root so the image can include
-      # artifacts/ alongside backend/.
+      # artifacts/ alongside backend/. The root .dockerignore keeps the
+      # upload small.
       context: ../
       remoteBuild: true
 
   frontend:
     project: ./frontend
     host: containerapp
-    language: ts
+    language: docker
     docker:
       path: ./Dockerfile
       context: .

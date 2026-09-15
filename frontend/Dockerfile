@@ -1,7 +1,9 @@
-# syntax=docker/dockerfile:1
-#
 # Frontend — Next.js standalone output.
 # Multi-stage so the runtime image carries no build toolchain.
+#
+# Deliberately plain Dockerfile syntax — no BuildKit-only features and no
+# `# syntax=` frontend directive — so it builds identically under ACR Tasks
+# (server-side, no local Docker) and under a local Docker daemon.
 
 FROM node:20-alpine AS deps
 WORKDIR /app

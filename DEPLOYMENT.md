@@ -18,8 +18,25 @@ go in `.azure/<env>/.env`, which is gitignored.
 | Contributor **and** User Access Administrator on the resource group | The template creates role assignments |
 | An AI Landing Zone already deployed | Container Apps Environment, Cosmos, Key Vault, AI Search, App Insights |
 
-**Docker is not required.** Images build server-side via ACR remote build.
-If that fails, azd falls back to a local Docker/Podman build automatically.
+### No Docker, Node or Python needed
+
+Everything is built server-side by **ACR Tasks**. The operator's machine
+only needs the Azure CLI and azd.
+
+Three things make that true, and all three matter:
+
+1. `docker.remoteBuild: true` — the image build runs in Azure.
+2. `language: docker` on both services — stops azd running a local `pip
+   install` / `npm ci` before packaging, which would require Python and
+   Node locally.
+3. No `# syntax=` directive in either Dockerfile, and no BuildKit-only
+   features, so ACR's builder handles them unmodified.
+
+> ⚠️ **One caveat.** If a remote build fails, azd falls back to a *local*
+> Docker build — which hard-fails when no runtime is installed. If that
+> happens, use `scripts/build-images.ps1`, which calls `az acr build`
+> directly and has no fallback path. See
+> [Building without Docker](#building-without-docker).
 
 ---
 
@@ -82,6 +99,31 @@ azd provision --preview
 ```
 
 Review that output with the platform team before the first `azd up`.
+
+---
+
+## Building without Docker
+
+`azd` should handle this on its own. If it tries to fall back to a local
+Docker build, use this instead — it calls `az acr build` directly, so the
+build always runs in Azure and there is no fallback path to fail.
+
+```powershell
+azd provision                  # registry and apps must exist first
+./scripts/build-images.ps1     # builds both, then releases them
+```
+
+Or one service at a time:
+
+```powershell
+./scripts/build-images.ps1 -Service backend
+```
+
+The script reads the registry, resource group and environment name from
+the azd environment, so there is nothing extra to configure. It tags each
+image with a UTC timestamp plus `latest`, then updates the container app.
+
+Use this as the normal path on any machine without a container runtime.
 
 ---
 
@@ -159,7 +201,8 @@ Then open the frontend, submit a use case, and walk the four gates.
 | ACR name unavailable | Registry names are globally unique | Change `environmentName` |
 | Container app stuck `Activating`, image pull fails | Container Apps subnet cannot reach the registry (NSG or UDR) | Check outbound rules; may need a private endpoint on ACR |
 | `azd provision --preview` shows deletes | Something unexpected about the landing zone | **Stop** and investigate before applying |
-| Remote build fails | ACR Tasks unavailable | azd falls back to local Docker automatically |
+| `docker: command not found` / "failed to connect to Docker" during `azd deploy` | Remote build failed and azd fell back to local | Use `./scripts/build-images.ps1` |
+| `az acr build` fails with a registry network error | ACR public access disabled, or the build agent is blocked | Confirm `allowRegistryPublicAccess` is `true` for now |
 
 ---
 
