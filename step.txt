@@ -21,3 +21,7 @@ az containerapp secret set -n ca-intake-intake-dev-backend -g rg-m42-ailz-dev-ua
 
 az containerapp update -n ca-intake-intake-dev-backend -g rg-m42-ailz-dev-uaen-01 `
   --set-env-vars COMPASS_API_KEY=secretref:compass-api-key
+
+az keyvault secret set --vault-name kvm42ailzdevuaen01 --name compass-api-key --value "8bbe388cd7ad41d9b1b534b4443d03c7"
+azd env set COMPASS_SECRET_NAME compass-api-key
+azd up
