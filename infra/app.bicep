@@ -76,13 +76,32 @@ the secret in Key Vault, and redeploy. No code change is required.
 ''')
 param compassSecretName string = ''
 
+@description('''
+Compass API key supplied directly, for environments where Key Vault is not
+reachable or the operator lacks Secrets Officer on the vault.
+
+Set with:  azd env set COMPASS_API_KEY <key>
+
+The value lands in a container app secret, not an environment variable, so
+it is encrypted at rest and not returned by `az containerapp show`. It is
+still weaker than the Key Vault path: rotation means redeploying rather
+than updating the vault. Prefer compassSecretName where the vault is
+available.
+
+azd keeps this in .azure/<env>/.env, which is gitignored.
+''')
+@secure()
+param compassApiKey string = ''
+
 @description('Compass chat model. gpt-5.1 is a reasoning model, so temperature and seed are omitted automatically.')
 param compassChatModel string = 'gpt-5.1'
 
-// Deploying without the secret is a supported first-deployment posture,
+// Deploying without model access is a supported first-deployment posture,
 // not a degraded one — it proves infrastructure, identity and networking
-// independently of model access.
-var useCompassSecret = !empty(compassSecretName)
+// independently of the model.
+var useKeyVaultSecret = !empty(compassSecretName)
+var useDirectKey = empty(compassSecretName) && !empty(compassApiKey)
+var useCompassSecret = useKeyVaultSecret || useDirectKey
 
 // Until azd has pushed a real image, point the apps at a known-good public
 // one so the container app can be created and reach a Running state.
@@ -287,7 +306,7 @@ resource backend 'Microsoft.App/containerApps@2024-03-01' = {
           identity: backendIdentity.id
         }
       ]
-      secrets: useCompassSecret ? [
+      secrets: useKeyVaultSecret ? [
         {
           // Resolved from Key Vault at runtime via the workload identity —
           // the key is never an environment variable in the template.
@@ -295,7 +314,14 @@ resource backend 'Microsoft.App/containerApps@2024-03-01' = {
           keyVaultUrl: '${keyVault.properties.vaultUri}secrets/${compassSecretName}'
           identity: backendIdentity.id
         }
-      ] : []
+      ] : (useDirectKey ? [
+        {
+          // Supplied through azd env. Held as a container app secret, so
+          // it is encrypted at rest and not returned by `show`.
+          name: 'compass-api-key'
+          value: compassApiKey
+        }
+      ] : [])
     }
     template: {
       containers: [

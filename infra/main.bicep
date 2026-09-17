@@ -57,6 +57,10 @@ param allowRegistryPublicAccess bool = true
 @description('Key Vault secret name holding the Compass API key. Empty = stub mode.')
 param compassSecretName string = ''
 
+@description('Compass API key supplied directly when Key Vault is not reachable. See app.bicep.')
+@secure()
+param compassApiKey string = ''
+
 @description('Compass chat model to call. Empty secret name means this is unused.')
 param compassChatModel string = 'gpt-5.1'
 
@@ -82,6 +86,7 @@ module app 'app.bicep' = {
     compassBaseUrl: compassBaseUrl
     allowRegistryPublicAccess: allowRegistryPublicAccess
     compassSecretName: compassSecretName
+    compassApiKey: compassApiKey
     compassChatModel: compassChatModel
   }
 }
