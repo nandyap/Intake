@@ -35,6 +35,17 @@ logger = logging.getLogger(__name__)
 STEP = 8
 ARTIFACT_ID = "feasibility-rules"
 
+# The governed artifacts two of these rules need in order to be
+# answerable at all. Neither exists yet; both are M42 deliverables.
+#
+# A rule is only evaluated when the evidence it reasons over is present.
+# Asking the store is deliberate: a stub honestly reports a missing
+# artifact, but a live agent handed nothing still answers confidently and
+# raises no flag, so a rule keyed off the agent's admission stops firing
+# precisely when real agents are switched on.
+_CAPABILITY_MAP = "business-capability-map"
+_AS_IS_ARCHITECTURE = "ai-as-is-architecture"
+
 # Terminal outcomes short-circuit the verdict but every rule still
 # evaluates, so the audit trail shows what was considered.
 _TERMINAL = {FeasibilityOutcome.REJECT, FeasibilityOutcome.RETURN_AS_INTEGRATION}
@@ -54,6 +65,7 @@ def evaluate(
             is intentional — a gate with no rules must not pass anything.
     """
     artifact = get_store().resolve(ARTIFACT_ID)
+    store = get_store()
 
     evaluated: list[RuleOutcome] = []
     reasons: list[str] = []
@@ -85,17 +97,28 @@ def evaluate(
         )
 
     # -- F02 · an existing block already realises this ---------------------
-    f02 = realisation.reuse_recommendation in {
+    # Answerable only where an as-is architecture exists to verify the
+    # claim against. Step 6 declares no governed artifact, so today the
+    # reuse route is a proposal for a human to check, not a verdict.
+    as_is_missing = not store.is_available(_AS_IS_ARCHITECTURE)
+    proposes_reuse = realisation.reuse_recommendation in {
         ReuseRecommendation.REUSE,
         ReuseRecommendation.INTEGRATE,
     }
+    f02 = proposes_reuse and not as_is_missing
     evaluated.append(
         RuleOutcome(
             rule_id="F02",
             description="Return as integration where an existing block already realises the capability.",
             provenance=RuleProvenance.SEED,
             triggered=f02,
-            detail=f"Reuse recommendation = {realisation.reuse_recommendation.value}",
+            detail=(
+                "not evaluated — no as-is architecture was available to "
+                f"verify the proposed route "
+                f"({realisation.reuse_recommendation.value})"
+                if as_is_missing
+                else f"Reuse recommendation = {realisation.reuse_recommendation.value}"
+            ),
         )
     )
     if f02 and not decided:
@@ -105,6 +128,23 @@ def evaluate(
             "An existing realisation already covers this capability: "
             f"{realisation.reuse_rationale or 'see realisation match'}. "
             "This is an integration, not a build."
+        )
+    elif as_is_missing and proposes_reuse:
+        # Not a verdict, but the reviewer must see the claim.
+        requires_input.append(
+            RequiresInput(
+                field_name="reuse_recommendation",
+                reason=(
+                    "A reuse or integration route was proposed "
+                    f"({realisation.reuse_recommendation.value}), but no "
+                    "as-is architecture was available to verify that an "
+                    "existing block realises this capability."
+                ),
+                gate_condition=(
+                    "Confirm the reuse claim against the AI and traditional "
+                    "as-is architectures before committing to a build."
+                ),
+            )
         )
 
     # -- F03 · framing rejection ------------------------------------------
@@ -127,7 +167,11 @@ def evaluate(
     # A use case cannot be rejected for failing to match against an artifact
     # that does not exist. Where the capability map itself is missing, that
     # is a gap flag and a gate condition — not a verdict on the submission.
-    capability_map_missing = any(
+    #
+    # The store is asked directly rather than trusting the step to have
+    # flagged it: the stub raises MISSING_ARTIFACT, a live agent does not,
+    # and this rule must behave identically in both modes.
+    capability_map_missing = not store.is_available(_CAPABILITY_MAP) or any(
         flag.flag_type is GapFlagType.MISSING_ARTIFACT for flag in coverage.gap_flags
     )
     f04 = (

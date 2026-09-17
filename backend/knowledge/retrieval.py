@@ -174,6 +174,22 @@ class ArtifactStore:
         """
         return [self.resolve(aid) for aid in artifact_ids]
 
+    def is_available(self, artifact_id: str) -> bool:
+        """Whether a governed artifact can be resolved right now.
+
+        Deterministic rules use this to decide whether a check is even
+        answerable. Asking the store is not the same as asking the step
+        that read it: a stub honestly reports a missing artifact, but a
+        live agent given nothing will still produce a confident answer and
+        raise no flag at all. A rule that keys off the agent's admission
+        therefore silently stops firing the moment real agents are enabled.
+        """
+        try:
+            self.resolve(artifact_id)
+        except ArtifactUnavailable:
+            return False
+        return True
+
     def describe(self) -> list[dict[str, Any]]:
         """Manifest summary for the admin / fail-closed status board."""
         entries = self._load_manifest()

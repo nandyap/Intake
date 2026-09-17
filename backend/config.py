@@ -37,7 +37,7 @@ class Settings:
         default_factory=lambda: os.getenv("COMPASS_API_KEY", "")
     )
     compass_chat_model: str = field(
-        default_factory=lambda: os.getenv("COMPASS_CHAT_MODEL", "gpt-4.1")
+        default_factory=lambda: os.getenv("COMPASS_CHAT_MODEL", "gpt-5.1")
     )
     compass_embedding_model: str = field(
         default_factory=lambda: os.getenv(
@@ -64,6 +64,18 @@ class Settings:
     )
     schema_gate_retries: int = field(
         default_factory=lambda: int(os.getenv("SCHEMA_GATE_RETRIES", "2"))
+    )
+
+    # Reasoning models (gpt-5.x, o1, o3, o4) reject ``temperature`` and
+    # ``seed``: they sample internally and the API returns 400 if either is
+    # sent. Auto-detected from the model name; set MODEL_SAMPLING_CONTROLS
+    # to true/false to override.
+    #
+    # This is not cosmetic. Reproducibility is a tested claim, and with a
+    # reasoning model it rests on the schema gate and pinned retrieval
+    # rather than on sampling controls. ``/api/health`` reports which.
+    model_sampling_controls: str = field(
+        default_factory=lambda: os.getenv("MODEL_SAMPLING_CONTROLS", "auto").strip().lower()
     )
 
     # ---- Governed artifacts ---------------------------------------------
@@ -123,6 +135,32 @@ class Settings:
         return bool(
             self.compass_api_key or self.use_entra_id or self.foundry_project_endpoint
         )
+
+    @property
+    def active_chat_model(self) -> str:
+        """The model that will actually be called."""
+        if self.compass_api_key:
+            return self.compass_chat_model
+        if self.use_entra_id or self.foundry_project_endpoint:
+            return self.foundry_model_deployment_name
+        return ""
+
+    @property
+    def supports_sampling_controls(self) -> bool:
+        """Whether ``temperature`` and ``seed`` may be sent to the model.
+
+        Reasoning families reject both. Sending them anyway produces a 400
+        on every single step, which during a demo looks like the whole
+        engine is broken.
+        """
+        if self.model_sampling_controls in {"true", "1", "yes", "on"}:
+            return True
+        if self.model_sampling_controls in {"false", "0", "no", "off"}:
+            return False
+
+        model = self.active_chat_model.lower().replace("_", "-")
+        reasoning_prefixes = ("gpt-5", "o1", "o1-", "o3", "o3-", "o4", "o4-")
+        return not model.startswith(reasoning_prefixes)
 
     def __post_init__(self) -> None:
         self.local_state_dir.mkdir(parents=True, exist_ok=True)

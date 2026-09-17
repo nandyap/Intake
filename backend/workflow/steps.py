@@ -115,18 +115,33 @@ class AgentStep(StepExecutor):
             output = self.stub(pack)
             output.is_stub = True
         else:
-            proposal = await propose(
+            output = await propose(
                 agent=self.agent,
                 system_prompt=PROMPTS[self.step_number],
                 user_content=self.user_content(pack),
                 schema=self.schema,
+                # Provenance is ours to state, never the model's to claim.
+                provenance={
+                    "step": self.step_number,
+                    "tier": self.tier,
+                    "performed_by": self.performed_by,
+                },
             )
-            output = proposal
 
         output.step = self.step_number
         output.tier = self.tier
         output.performed_by = self.performed_by
-        output.artifacts_consulted = refs + list(output.artifacts_consulted)
+
+        # Deduplicate on identity, keeping order. A document read twice was
+        # still only read once.
+        seen: set[tuple[str, str]] = set()
+        merged = []
+        for ref in refs + list(output.artifacts_consulted):
+            key = (ref.artifact_id, ref.version)
+            if key not in seen:
+                seen.add(key)
+                merged.append(ref)
+        output.artifacts_consulted = merged
         return output
 
 

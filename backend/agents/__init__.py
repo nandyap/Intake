@@ -27,7 +27,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from workflow.runtime import create_chat_client
+from config import settings
+from workflow.runtime import create_chat_client, determinism_options
 
 logger = logging.getLogger(__name__)
 
@@ -116,19 +117,26 @@ def build_agents() -> dict[int, Any]:
 
     from agent_framework import Agent
 
+    options = determinism_options()
+
     by_step: dict[int, Any] = {}
     for context_name, steps in BOUNDED_CONTEXTS.items():
         agent = Agent(
             chat_client,
             name=context_name,
             instructions=_INSTRUCTIONS[context_name],
+            default_options=options or None,
         )
         for step in steps:
             by_step[step] = agent
 
     logger.info(
-        "Built %d bounded-context agents covering %d steps",
+        "Built %d bounded-context agents covering %d steps (model=%s, %s)",
         len(BOUNDED_CONTEXTS),
         len(by_step),
+        settings.active_chat_model,
+        f"temperature={options['temperature']}, seed={options['seed']}"
+        if options
+        else "sampling controls not supported by this model",
     )
     return by_step
