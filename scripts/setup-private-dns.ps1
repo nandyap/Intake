@@ -47,17 +47,46 @@ function Write-Miss { param([string]$Text) Write-Host "  [--]   $Text" -Foregrou
 if (-not $ContainerAppsEnvironment) {
     $ContainerAppsEnvironment = az containerapp env list `
         --resource-group $ResourceGroup --query '[0].name' -o tsv
-    if (-not $ContainerAppsEnvironment) {
-        throw "No Container Apps environment found in $ResourceGroup."
+    if ($LASTEXITCODE -ne 0 -or -not $ContainerAppsEnvironment) {
+        throw "Could not list Container Apps environments in $ResourceGroup. Check the resource group name and that you have Microsoft.App/managedEnvironments/read."
     }
 }
 
 Write-Step "Container Apps environment: $ContainerAppsEnvironment"
 
-$envJson = az containerapp env show `
+# Capture stderr so an authorization failure is reported here rather than
+# leaving $envJson null further down.
+$envRaw = az containerapp env show `
     --name $ContainerAppsEnvironment --resource-group $ResourceGroup `
     --query "{staticIp:properties.staticIp, defaultDomain:properties.defaultDomain, internal:properties.vnetConfiguration.internal, subnet:properties.vnetConfiguration.infrastructureSubnetId}" `
-    -o json | ConvertFrom-Json
+    -o json 2>&1
+$envQueryFailed = $LASTEXITCODE -ne 0
+
+$envJson = $null
+if (-not $envQueryFailed) {
+    try { $envJson = $envRaw | ConvertFrom-Json } catch { $envQueryFailed = $true }
+}
+
+# FAIL LOUDLY. A failed lookup must never be mistaken for "this environment
+# is external, so no private DNS is required" — that is a false all-clear,
+# and it is the single most misleading thing this script could report.
+if ($envQueryFailed -or $null -eq $envJson -or $null -eq $envJson.defaultDomain) {
+    Write-Host ''
+    Write-Host 'CANNOT DETERMINE ENVIRONMENT STATE' -ForegroundColor Red
+    Write-Host ($envRaw | Out-String).Trim()
+    Write-Host ''
+    Write-Host 'This is NOT a clean result. The environment may still be internal'
+    Write-Host 'and may still require a Private DNS Zone.'
+    Write-Host ''
+    Write-Host 'Most likely cause: the signed-in principal lacks'
+    Write-Host '  Microsoft.App/managedEnvironments/read'
+    Write-Host 'on the resource group. Reader on the resource group is enough.'
+    Write-Host ''
+    Write-Host 'If access was granted in the last few minutes, run'
+    Write-Host '  az account clear; az login'
+    Write-Host 'and retry - RBAC changes take time to reach the token.'
+    exit 2
+}
 
 $staticIp      = $envJson.staticIp
 $defaultDomain = $envJson.defaultDomain
