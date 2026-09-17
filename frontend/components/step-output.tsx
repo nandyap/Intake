@@ -27,6 +27,7 @@ export function StepOutputPanel({
 }) {
   const [data, setData] = useState<StepOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [raw, setRaw] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,17 +66,40 @@ export function StepOutputPanel({
       )}
 
       <div>
-        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Output
-        </h4>
+        <div className="mb-2 flex items-center justify-between">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Output
+          </h4>
+          {entries.length > 0 && (
+            <button
+              onClick={() => setRaw(!raw)}
+              className="text-[11px] text-teal-700 hover:underline"
+            >
+              {raw ? "show as text" : "show raw JSON"}
+            </button>
+          )}
+        </div>
         {entries.length === 0 ? (
           <p className="text-sm text-slate-400">
             This step carries provenance only.
           </p>
-        ) : (
+        ) : raw ? (
           <pre className="max-h-96 overflow-auto rounded border border-slate-200 bg-white p-3 text-[11px] leading-relaxed text-slate-700">
             {JSON.stringify(payload, null, 2)}
           </pre>
+        ) : (
+          <dl className="space-y-2.5 rounded border border-slate-200 bg-white p-3.5">
+            {entries.map(([key, value]) => (
+              <div key={key}>
+                <dt className="text-xs font-medium text-slate-500">
+                  {humanise(key)}
+                </dt>
+                <dd className="mt-0.5 text-sm text-slate-800">
+                  {renderValue(value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
         )}
       </div>
 
@@ -141,4 +165,80 @@ export function StepOutputPanel({
       </div>
     </div>
   );
+}
+
+/** snake_case field name -> a phrase a reader can scan. */
+function humanise(key: string): string {
+  const s = key.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Render a step's value as text rather than JSON.
+ *
+ * Step outputs are deliberately heterogeneous — each contract carries the
+ * shape its own step needs — so this formats by *shape* rather than by
+ * step. The raw JSON stays one click away, because in a schema discussion
+ * the exact field names are the point.
+ */
+function renderValue(value: unknown): React.ReactNode {
+  if (value === null || value === undefined || value === "") {
+    return <span className="text-slate-400">not set</span>;
+  }
+
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "number" || typeof value === "string") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span className="text-slate-400">none</span>;
+
+    // A list of plain values reads better inline than as bullets.
+    if (value.every((v) => typeof v === "string" || typeof v === "number")) {
+      return value.join(", ");
+    }
+
+    return (
+      <ul className="mt-1 space-y-1.5">
+        {value.map((item, i) => (
+          <li key={i} className="border-l-2 border-slate-200 pl-2.5">
+            {typeof item === "object" && item !== null ? (
+              <dl className="space-y-0.5">
+                {Object.entries(item as Record<string, unknown>).map(
+                  ([k, v]) => (
+                    <div key={k} className="flex gap-1.5 text-[13px]">
+                      <dt className="shrink-0 text-slate-500">{humanise(k)}:</dt>
+                      <dd className="text-slate-800">{renderValue(v)}</dd>
+                    </div>
+                  ),
+                )}
+              </dl>
+            ) : (
+              String(item)
+            )}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length === 0) {
+      return <span className="text-slate-400">none</span>;
+    }
+    return (
+      <dl className="mt-1 space-y-0.5">
+        {entries.map(([k, v]) => (
+          <div key={k} className="flex gap-1.5 text-[13px]">
+            <dt className="shrink-0 text-slate-500">{humanise(k)}:</dt>
+            <dd className="text-slate-800">{renderValue(v)}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
+  return String(value);
 }
