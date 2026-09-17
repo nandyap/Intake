@@ -146,7 +146,7 @@ Added to the existing resource group. Nothing existing is modified.
 mode**:
 
 - the full 3–22 graph executes
-- all four human gates fire
+- all five human gates fire
 - every deterministic service runs for real — feasibility, readiness,
   risk derivation, policy, composition, and the initial business case
 - agentic steps return schema-valid placeholders marked `is_stub`

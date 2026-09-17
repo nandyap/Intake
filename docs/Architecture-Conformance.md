@@ -17,8 +17,8 @@ against the code.
 | Agentic steps matching the diagram's tier **and** role | **14 of 14** |
 | Deterministic services matching | **5 of 5** |
 | Steps in Phase 1 scope implemented | **19 of 20** (step 12 deferred) |
-| Corrections made after reviewing the diagram | 1 (tier definitions) |
-| Genuine gaps against the diagram | 3 |
+| Corrections made after reviewing the diagram | 2 (tier definitions; step-13 gate) |
+| Genuine gaps against the diagram | **2** (was 3 — step 13 closed) |
 | Structural question needing a decision | 1 (the gate model) |
 
 The spine of the architecture — which step is deterministic, which is
@@ -116,33 +116,58 @@ keeps these as separate types: `DeterminismTier` and `GovernanceTier`.
 
 ## 3 · Gaps against the diagram
 
-Stated plainly. None is hidden in the build; all three are visible in the
+Stated plainly. Neither is hidden in the build; both are visible in the
 code or the documentation.
 
-### 3.1 · Step 13 has no human gate ⚠️
+### 3.1 · Step 13 human gate — **closed 2026-09-17** ✅
 
 The diagram marks step 13 **H** — *confirm criticality class* is a human
-decision.
+decision. The build had the field but not the gate, so the class was
+confirmed by an agent proposal alone.
 
-The build has the field but not the gate:
+**Why it mattered.** The criticality class is not an output, it is an
+input: steps 18, 19, 20 and 21 all derive control rigour from it. An
+under-classified use case produces a design that looks fully compliant
+against the wrong standard.
+
+**The second defect, found while fixing the first.** Readiness rule R02
+exists to catch exactly this condition. It could not:
 
 ```python
-# contracts/steps.py
-architect_confirmed: bool = False   # never set true by a human
-
-# workflow/graph.py
-builder.add_chain([s9, s10, s11, s13, s14, s15])   # flows straight through
+unconfirmed = (
+    not criticality.architect_confirmed and not criticality.class_per_branch
+)
 ```
 
-The readiness service at step 15 *reads* `architect_confirmed`, so the
-plumbing anticipates it. Only the gate node is missing.
+Both clauses had to be true for R02 to fire. The step-13 agent always
+populates `class_per_branch`, so the second clause was always false, so
+R02 was **structurally incapable of firing**. The guard that should have
+detected the missing gate was itself silently defeated.
 
-**Impact:** a criticality class is currently confirmed by an agent
-proposal alone. Given that the class sets the control rigour for
-everything downstream, this is the most substantive of the three gaps.
+**Now:**
 
-**Fix:** one gate executor plus two edges. Small, and the pattern already
-exists four times over.
+```python
+# workflow/graph.py — the gate exists
+builder.add_edge(s13, criticality_gate)
+builder.add_edge(criticality_gate, s14, condition=_criticality_confirmed)
+builder.add_edge(criticality_gate, terminal, condition=_terminated)
+
+# deterministic/readiness.py — R02 fails closed
+unconfirmed = not criticality.architect_confirmed
+```
+
+Only a human at the gate sets `architect_confirmed`. If the gate is ever
+bypassed, readiness **fails** and the run stops before any control is
+derived. `artifacts/seeds/readiness-rules.json` was updated to match, so
+the governed artifact and the code still agree.
+
+The architect may confirm the proposed class or substitute a different
+one. A substitution *is* the correction, so the gate has no send-back
+loop and the declared-cycle count stays at four.
+
+**Verify:** `python -m tests.criticality_gate_check` — asserts R02 fires
+when unconfirmed, clears when confirmed, and that an architect's
+substituted class reaches the design pack rather than being dropped.
 
 ### 3.2 · Step 12 deferred
 
@@ -157,7 +182,7 @@ dependency.
 **This was a documented scope decision, not an omission.** It should be
 confirmed rather than assumed.
 
-### 3.3 · Human decisions are not on Teams Approvals
+### 3.3 · Human decisions are not on Teams Approvals ⚠️
 
 The diagram's legend is specific: *"Human decision via Teams Approvals."*
 
@@ -169,6 +194,11 @@ wrong channel.
 The sponsor's email also names **Teams and email** for the AI CoE report,
 so two independent sources agree on the channel. The web console should be
 treated as an interim surface.
+
+**This is now the only open conformance gap.** It is a channel swap rather
+than a logic change: the decision payloads already carry the decider's
+identity and notes, so an Approvals adapter would replace the transport
+and leave the graph untouched.
 
 ---
 
@@ -186,6 +216,7 @@ build follows the email:
 |---|---|---|
 | Business owner confirmation | step 3 | Sponsor stage 1 — *"concludes with an agreement on the objective of the solution and the value of achieving it, confirmed by the business owner"* |
 | AI CoE review | step 8 | Sponsor stage 2 — *"goes to the AI CoE team through Teams and e-mail, to accept, reject or send back for further information"* |
+| Criticality confirmation | step 13 | **Diagram — H at step 13** |
 | Architect review | step 22 | Sponsor stage 3 — *"An Architect should approve this solution, reject it, re-prompt it"* |
 | Divergence approval | after architect review | Sponsor stage 3 — *"Any divergence between the proposal and the original request should go back to the business owner"* |
 
@@ -194,10 +225,13 @@ Mapping the two together:
 | Diagram | Build | Status |
 |---|---|---|
 | **H** at step 8 | AI CoE review gate, immediately after step 8 | ✅ aligned — the deterministic verdict is computed, then a human accepts, rejects, or returns it |
-| **H** at step 13 | — | ❌ **missing** (§3.1) |
+| **H** at step 13 | Criticality confirmation gate, immediately after step 13 | ✅ **aligned** (closed 2026-09-17, §3.1) |
 | **H** at step 26 | Architect review gate at step 22 | ⚠️ **pulled forward.** Step 26 is out of Phase 1, so the sponsor's stage-3 architect approval was placed at the end of the Phase 1 flow instead |
 | — | Business owner confirmation after step 3 | ➕ **added** from the sponsor's email; not in the diagram |
 | — | Divergence approval | ➕ **added** from the sponsor's email; not in the diagram |
+
+Two of the diagram's three human decisions are now met in place. The
+third cannot be, because step 26 is not in Phase 1.
 
 ### Why the build followed the email
 
@@ -213,13 +247,17 @@ own next step would be open-stochastic; a declared cycle is not.
 
 ### What needs deciding
 
-Whether the reference flow should absorb the sponsor's gates, or the build
-should drop back to the diagram's three. **The build can move either way
-cheaply** — gates are executors plus edges, and the pattern is established.
-What it should not do is guess.
+The step-13 gate is done — both sources supported it, so it was added
+rather than tabled. What remains is narrower:
 
-Recommended: add the step-13 gate regardless, since both sources support
-a human confirming criticality, and resolve the rest as one decision.
+Whether the reference flow should absorb the sponsor's two extra gates
+(owner confirmation, divergence approval), or the build should drop them.
+**The build can move either way cheaply** — gates are executors plus
+edges, and the pattern is now established five times over. What it should
+not do is guess.
+
+Recommended: keep both. Each traces to a direct quotation from the
+sponsor's email, and sign-off is conditioned on those outcomes.
 
 ---
 
@@ -262,7 +300,7 @@ output.
 | | |
 |---|---|
 | The 19-step flow | **Real.** Runs start to finish |
-| Four human gates and their loops | **Real** |
+| Five human gates and their loops | **Real.** Owner (3), AI CoE (8), criticality (13), architect (22), divergence |
 | The five D0 services | **Real logic**, provisional rules |
 | Initial business case | **Real.** Uses the actual Appendix B anchors and formulas |
 | **The eight agents** | **Placeholders.** Prompts, schemas and wiring exist; no model key, so every agentic step returns a schema-valid stub marked `is_stub`. **They have never made a model call** |
@@ -278,15 +316,22 @@ reviewer can see at a glance which parts of a derivation are real.
 
 ```powershell
 cd backend
-python -m tests.smoke           # 19 steps E2E · severe-harm rejection · reproducibility
-python -m tests.api_smoke       # HTTP surface across all four gates
-python -m tests.samples_check   # each worked example reaches its labelled outcome
-python -m tests.demo_check      # samples and design-pack endpoints
+python -m tests.smoke                   # 19 steps E2E · severe-harm rejection · reproducibility
+python -m tests.api_smoke               # HTTP surface across all five gates
+python -m tests.samples_check           # each worked example reaches its labelled outcome
+python -m tests.demo_check              # samples and design-pack endpoints
+python -m tests.progress_check          # run progress advances while paused at a gate
+python -m tests.criticality_gate_check  # step 13 gate · readiness R02 fails closed
 ```
 
-All four pass. The reproducibility test runs one submission twice and
-compares the resulting design packs field by field — the core value claim
-is tested, not asserted.
+All six pass. Two are worth singling out:
+
+- **`smoke`** runs one submission twice and compares the design packs
+  field by field — the reproducibility claim is tested, not asserted.
+- **`criticality_gate_check`** asserts that readiness rule R02 **fires**
+  on an unconfirmed criticality class. Before §3.1 it could not, and no
+  test noticed, because every other test exercises the path where a guard
+  correctly stays silent.
 
 The graph itself is a single readable file: `backend/workflow/graph.py`.
 Every transition in the system is declared there, and nowhere else.

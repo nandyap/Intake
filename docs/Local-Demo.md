@@ -1,7 +1,7 @@
 # Running the demo locally
 
 The whole solution runs on a laptop. No Azure, no credentials, no
-container runtime — the derivation engine, all four human gates and every
+container runtime — the derivation engine, all five human gates and every
 deterministic service work offline.
 
 ```powershell
@@ -42,7 +42,7 @@ The system takes a business idea and produces two things:
   component selection and a composed architecture
 - a **funding recommendation** supported by that design
 
-Between them sit two rule-based gates and four human decisions.
+Between them sit two rule-based verdicts and five human decisions.
 
 ---
 
@@ -84,11 +84,29 @@ out what has already happened:
 
 Accept it.
 
-### 4 · The design work
+### 4 · The criticality gate — the one that sets the rigour
 
-The run continues through quality attributes, the ontology check,
-workflow sequencing, criticality confirmation and assertions, then the
-**readiness gate** — the second rule-based verdict.
+The run continues through quality attributes, the ontology check and
+workflow sequencing, then stops at the **criticality confirmation** gate.
+
+This is the shortest gate to explain and the most important to justify:
+
+> The criticality class is not an output, it is an **input**. Everything
+> after it — risk classes, obligations, build surface, components —
+> derives its rigour from this one value. An under-classified use case
+> produces a design that looks fully compliant against the wrong
+> standard. So a person confirms it.
+
+Try **substituting** a different class rather than confirming, then check
+the design pack afterwards — the obligations change with it.
+
+> And if this gate were ever bypassed, the readiness verdict fails the
+> run rather than proceeding on an unconfirmed class.
+
+### 5 · The design work
+
+After assertions, the run reaches the **readiness verdict** — the second
+rule-based decision.
 
 Then the part worth slowing down for: risk classification, the controls
 that follow from it, build-surface selection, component selection, and
@@ -100,13 +118,13 @@ composition.
 
 It stops at **architect review**. Approve.
 
-### 5 · The deliverable
+### 6 · The deliverable
 
 Click **View design pack**.
 
 This is the answer to "is this just a yes/no?" — it is not. The pack
 carries the recommendation, the problem framing, capability coverage,
-build-or-reuse, risk, both gate verdicts *with every rule that was
+build-or-reuse, risk, both verdicts *with every rule that was
 evaluated*, the workflow, the derived controls, the architecture, and the
 business case broken down by provenance.
 
@@ -119,7 +137,7 @@ Two things to point at:
   because it is architecture-derived and the architecture did not exist
   when the case was produced.
 
-### 6 · Show a rejection
+### 7 · Show a rejection
 
 Back to **New submission → Paediatric medication dosing**.
 
@@ -133,7 +151,7 @@ Confirm the owner gate, then watch it stop at feasibility.
 Open the design pack: the rules table shows exactly which rule fired and
 why.
 
-### 7 · Show the no-fabrication rule
+### 8 · Show the no-fabrication rule
 
 **New submission → Supplier onboarding.**
 
@@ -180,7 +198,7 @@ quietly ran on stale governance would be worse than one that refused.
 ```powershell
 cd backend
 python -m tests.smoke           # full run, rejection rule, reproducibility
-python -m tests.api_smoke       # HTTP surface across all four gates
+python -m tests.api_smoke       # HTTP surface across all five gates
 python -m tests.samples_check   # each example behaves as its label claims
 python -m tests.demo_check      # samples and design-pack endpoints
 ```

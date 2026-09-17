@@ -116,14 +116,18 @@ delivery. Wiring a real agent is a one-line change in `agents/__init__.py`.
 
 Risk (17–19) precedes design (20–22) so the solution inherits its guardrails.
 
-## The four human gates
+## The five human gates
 
-| Gate | Decision | Loop on rejection |
-|---|---|---|
-| Owner confirmation | Is this the objective, and is the value right? | → step 3 |
-| AI CoE review | Accept / reject / return for information | → step 3 |
-| Architect review | Approve / reject / re-prompt | → step 16 |
-| Divergence approval | Owner approves departure from the original request | → step 3 |
+Human pauses. **Not numbered steps** — they sit between steps and never
+count toward the 19.
+
+| Gate | After step | Decision | Loop on rejection |
+|---|---|---|---|
+| Owner confirmation | 3 | Is this the objective, and is the value right? | → step 3 |
+| AI CoE review | 8 | Accept / reject / return for information | → step 3 |
+| Criticality confirmation | 13 | Confirm or substitute the criticality class | none — substitution is the correction |
+| Architect review | 22 | Approve / reject / re-prompt | → step 16 |
+| Divergence approval | after architect | Owner approves departure from the original request | → step 3 |
 
 All four loops are bounded at 3 traversals.
 

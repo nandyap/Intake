@@ -95,14 +95,15 @@ judgement.
 
 ### Where humans decide
 
-The system never approves anything. Four decisions belong to people:
+The system never approves anything. Five decisions belong to people:
 
 - **The business owner** confirms the objective and its value, before any expensive work begins.
 - **The AI CoE** accepts, rejects, or asks for more information.
+- **An architect** confirms how critical the use case is — the judgement that sets how tightly everything after it is controlled.
 - **An architect** approves the design, rejects it, or sends it back for another pass.
 - **The business owner again**, if the proposed solution has drifted from what was originally asked for.
 
-The two *gates* in between — feasibility and readiness — are decided by
+The two *verdicts* in between — feasibility and readiness — are decided by
 rules in code, not by judgement and not by a model. Same inputs, same
 verdict, every time.
 
@@ -116,7 +117,7 @@ service, and the derivation engine.
 **Working for real:**
 
 - The complete 19-step flow, start to finish
-- All four human decision points, with the send-back paths
+- All five human decision points, with the send-back paths
 - All five rule-based services — feasibility, readiness, risk, controls, architecture composition
 - The initial business case, calculating real money from the submitted effort data
 - A web interface: submit, watch the derivation, make decisions, see what was relied on
@@ -211,7 +212,7 @@ Browser ──▶ Next.js ──proxy──▶ FastAPI ──▶ MAF typed workf
 This is the load-bearing decision, and it is worth being precise about.
 
 **The workflow graph decides every transition. Nothing else does.** All 19
-steps, 4 gates and 4 send-back loops are declared at build time in
+steps, 5 gates and 4 send-back loops are declared at build time in
 `workflow/graph.py`. No executor and no model chooses what runs next.
 
 The reason is governance, not taste. An orchestrator that picks its own next
@@ -231,8 +232,14 @@ Each loop is bounded at three traversals.
 | **D1** | A model proposes within a closed schema against retrieved data | Framing, capability matching, criticality |
 | **D2** | A model reasons over unbounded prose within the declared graph | Element decomposition, workflow sequencing |
 
-The gates are D0 on purpose. A gate whose verdict varies between runs is not
-a gate.
+The deterministic verdicts are D0 on purpose. A verdict that varies between
+runs cannot govern anything.
+
+**"Gate" means two different things here, and the difference matters.** A
+*deterministic verdict* (steps 8, 15, 18, 19, 22) is a numbered step that
+counts toward the 19 and is decided by rules in code. A *human gate* has no
+step number, sits between steps, and is decided by a named person. Step 8
+is a verdict; the AI CoE review that follows it is a gate.
 
 ### The schema gate
 
@@ -289,9 +296,9 @@ Stated plainly, because the difference matters when reviewing output.
 | Component | Status |
 |---|---|
 | The 19-step flow | **Real.** Runs start to finish. |
-| The four human gates | **Real**, including send-back loops. |
-| Feasibility gate | **Real logic**, provisional rules. Rule F01 (reject where failure would cause severe or permanent harm) is a sponsor directive and binding. The rest need confirmation. |
-| Readiness gate | **Real logic**, provisional rules. |
+| The five human gates | **Real**, including send-back loops. |
+| Feasibility verdict | **Real logic**, provisional rules. Rule F01 (reject where failure would cause severe or permanent harm) is a sponsor directive and binding. The rest need confirmation. |
+| Readiness verdict | **Real logic**, provisional rules. |
 | Risk derivation | **Real logic**, provisional facet schema. |
 | Control derivation | **Real logic**, provisional obligation set. |
 | Architecture composition | **Real**, but conformance validation is a structural self-check standing in for the proper validator. |
@@ -409,13 +416,17 @@ business case are exactly those already specified.
 Risk assessment (17–19) precedes design (20–22) deliberately, so the
 solution inherits its guardrails rather than having them applied afterwards.
 
-### The four gates and their send-back paths
+### The five gates and their send-back paths
 
-| Gate | Decision | On send-back |
-|---|---|---|
-| Owner confirmation | Is this the objective, and is the value right? | → step 3 |
-| AI CoE review | Accept · reject · return for information | → step 3 |
-| Architect review | Approve · reject · re-prompt | → step 16 |
-| Divergence approval | Owner approves departure from the original request | → step 3 |
+Human pauses, not numbered steps — they sit *between* steps and never
+count toward the 19.
 
-All four are bounded at three traversals.
+| Gate | After step | Decision | On send-back |
+|---|---|---|---|
+| Owner confirmation | 3 | Is this the objective, and is the value right? | → step 3 |
+| AI CoE review | 8 | Accept · reject · return for information | → step 3 |
+| Criticality confirmation | 13 | Confirm or substitute the criticality class | none — a substitution *is* the correction |
+| Architect review | 22 | Approve · reject · re-prompt | → step 16 |
+| Divergence approval | after architect | Owner approves departure from the original request | → step 3 |
+
+Four send-back loops, each bounded at three traversals.
