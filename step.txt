@@ -14,3 +14,10 @@ azd env set AZURE_APP_INSIGHTS_NAME appi-m42-ailz-dev-uaen-01
 azd env set AZURE_SUBSCRIPTION_ID 02830ed9-d80d-449d-83d7-88b2b4613ba5
 
 azd up
+
+
+az containerapp secret set -n ca-intake-intake-dev-backend -g rg-m42-ailz-dev-uaen-01 `
+  --secrets compass-api-key=8bbe388cd7ad41d9b1b534b4443d03c7
+
+az containerapp update -n ca-intake-intake-dev-backend -g rg-m42-ailz-dev-uaen-01 `
+  --set-env-vars COMPASS_API_KEY=secretref:compass-api-key
