@@ -4,11 +4,13 @@
   "status": "seed",
   "note": "SEED. v2.5 step 16 requires seven criteria and five counter-indicators, each with a test and a reducibility flag. The count is specified; the content is not. CAFE M1 (8 archetypes A1-A8 + determinism tiers D0-D3) supersedes this entirely - do not over-invest. Criteria 1-5 are irreducible; 6-7 are reducible where a rule exists or the ontology can be extended.",
   "tiers": {
-    "D0": "Deterministic - the same input always yields the same output by rule",
-    "D1": "Guided-stochastic, bounded - a model proposes within a closed schema against retrieved data",
-    "D2": "Guided-stochastic, open - a model reasons over unbounded natural language within a declared graph"
+    "D0": "Deterministic - a service or the orchestrator. The same input always yields the same output by rule.",
+    "D1": "Bounded-stochastic - an agent proposing against an enforced schema. The schema fixes the shape of the answer; the agent chooses its content.",
+    "D2": "Guided-stochastic - an agent producing a plan graph. The agent determines structure as well as content, within the declared workflow."
   },
-  "unresolved": "Hamza's email references CAFE tiers D0-D3. The final scope uses D0-D2. Confirm before Sprint 4.",
+  "tier_source": "Legend of the lead SA's 27-step architecture diagram (2026-09-17). These definitions are authoritative and supersede the earlier wording, which described D1/D2 as 'guided-stochastic bounded/open' and omitted the plan-graph distinction entirely.",
+  "unresolved": "Hamza's email references CAFE tiers D0-D3. The scope document and the SA diagram both use D0-D2. Confirm whether a D3 exists before step 16 is taken off seeds.",
+  "vocabulary_note": "'Guided-stochastic' is used at two levels in the source material and they must not be conflated. At STEP level it means D2 (agent produces a plan graph). At SOLUTION level (v2.5 section 7) it means the whole system stays within a statically declared graph - the opposite of open-stochastic. GovernanceTier in the code carries the solution-level meaning.",
   "criteria": [
     {"id": "C1", "test": "The step requires interpretation of unstructured natural language.", "reducible": false},
     {"id": "C2", "test": "The step requires judgement where no complete rule set exists.", "reducible": false},

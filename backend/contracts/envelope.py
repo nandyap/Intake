@@ -18,10 +18,22 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class DeterminismTier(str, Enum):
-    """v2.5 tiers. D0 is code; D1/D2 are agentic (guided).
+    """Per-step determinism tier.
 
-    Note: Hamza's consolidated email refers to CAFE tiers D0-D3. Resolve
-    before Sprint 4 — see approach doc, version discrepancies.
+    Definitions from the lead SA's 27-step architecture diagram:
+
+    * ``D0`` deterministic — a service or the orchestrator.
+    * ``D1`` bounded-stochastic — an agent proposing against an enforced
+      schema. The schema fixes the shape; the agent chooses the content.
+    * ``D2`` guided-stochastic — an agent producing a plan graph. The
+      agent determines structure as well as content.
+
+    Note: "guided-stochastic" also appears at *solution* level in v2.5 §7,
+    where it means the whole system stays inside a statically declared
+    graph. That is :class:`GovernanceTier`, not this. Do not conflate them.
+
+    Unresolved: the CAFE framework is said to use D0-D3. The scope
+    document and the SA diagram both use D0-D2.
     """
 
     D0 = "D0"
