@@ -44,13 +44,27 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Refuse to start without a model provider unless stub mode was asked for.
-# A stubbed run still produces a design pack carrying a recommendation, so
-# a misconfigured key must fail the deployment rather than quietly answer
-# with placeholders.
-settings.require_model_provider()
+# A missing model provider must not silently produce placeholder design
+# packs. It must also not crash-loop a container: a process that exits at
+# import gives a deployment that hangs for twenty minutes and a log line
+# nobody reads, which is worse to diagnose than a service that starts and
+# says exactly what is wrong.
+#
+# So the guard refuses the *operation*, not the *process*. Health answers,
+# the reason is visible, and no derivation can run.
+try:
+    settings.require_model_provider()
+    _misconfiguration: str | None = None
+except RuntimeError as exc:
+    _misconfiguration = str(exc)
 
-if settings.has_model_provider:
+if _misconfiguration:
+    logger.error("=" * 70)
+    for line in _misconfiguration.splitlines():
+        logger.error(line)
+    logger.error("Submissions will be refused with HTTP 503 until resolved.")
+    logger.error("=" * 70)
+elif settings.has_model_provider:
     logger.info(
         "Model provider configured: %s (sampling controls %s)",
         settings.active_chat_model,
@@ -124,7 +138,12 @@ def _run_summary(run: Run) -> dict[str, Any]:
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
     return {
+        # Deliberately still "ok": the service is up and answering. Whether
+        # it can derive is a separate, explicit field - a probe must not
+        # restart a container whose only problem is configuration.
         "status": "ok",
+        "can_derive": _misconfiguration is None,
+        "misconfiguration": _misconfiguration,
         "model_provider_configured": settings.has_model_provider,
         "mode": settings.mode,
         "model": settings.active_chat_model or None,
@@ -199,6 +218,9 @@ async def create_submission(payload: dict[str, Any]) -> dict[str, Any]:
     record, never the channel, so the same submission produces the same
     derivation regardless of how it arrived.
     """
+    if _misconfiguration:
+        raise HTTPException(status_code=503, detail=_misconfiguration)
+
     payload.setdefault("submission_id", f"SUB-{uuid.uuid4().hex[:8].upper()}")
     payload.setdefault("tracking_reference", new_tracking_reference())
 
