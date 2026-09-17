@@ -15,6 +15,7 @@ export type RunStatus =
   | "running"
   | "awaiting_owner_confirmation"
   | "awaiting_coe_review"
+  | "awaiting_criticality_confirmation"
   | "awaiting_architect_review"
   | "awaiting_divergence_approval"
   | "rejected"
@@ -25,6 +26,7 @@ export type RunStatus =
 export type GateType =
   | "OwnerConfirmationRequest"
   | "CoEReviewRequest"
+  | "CriticalityConfirmationRequest"
   | "ArchitectReviewRequest";
 
 export interface PendingGate {
@@ -187,6 +189,24 @@ export interface DesignPack {
   gap_flags: GapFlag[];
 }
 
+/** One step's raw validated output, as produced by that step. */
+export interface StepOutput {
+  step: number;
+  /** Provenance every step carries — says how far to trust the payload. */
+  envelope: {
+    step: number;
+    tier: string;
+    performed_by: string;
+    produced_at: string;
+    is_stub: boolean;
+    artifacts_consulted: { artifact_id: string; version: string; is_seed: boolean }[];
+    gap_flags: GapFlag[];
+    requires_input: { field_name: string; reason: string; gate_condition: string }[];
+  };
+  /** The step's own output — shape differs per step. */
+  payload: Record<string, unknown>;
+}
+
 /** Step metadata — the owning bounded context and determinism tier. */
 export const STEP_META: Record<number, { name: string; owner: string }> = {
   3: { name: "Frame use case", owner: "Business Analyst" },
@@ -239,6 +259,9 @@ export const api = {
   getRun: (ref: string) => request<RunSummary>(`/api/runs/${ref}`),
 
   getTimeline: (ref: string) => request<Timeline>(`/api/runs/${ref}/timeline`),
+
+  getStepOutput: (ref: string, step: number) =>
+    request<StepOutput>(`/api/runs/${ref}/steps/${step}`),
 
   getPack: (ref: string) =>
     request<Record<string, unknown>>(`/api/runs/${ref}/pack`),

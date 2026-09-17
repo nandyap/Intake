@@ -32,6 +32,10 @@ GATE_ANSWERS = {
         "confirmed_by": "Layla Haddad",
     },
     "CoEReviewRequest": {"decision": "approve", "reviewed_by": "AI CoE"},
+    "CriticalityConfirmationRequest": {
+        "confirmed": True,
+        "confirmed_by": "Solution Architect",
+    },
     "ArchitectReviewRequest": {
         "decision": "approve",
         "reviewed_by": "Solution Architect",
@@ -118,8 +122,9 @@ async def main() -> int:
         failures.append("design pack has no composed architecture")
     if summary["status"] != "completed":
         failures.append(f"expected completed, got {summary['status']}")
-    if gates != 4:
-        failures.append(f"expected 4 human gates, saw {gates}")
+    # owner (3), CoE (8), criticality (13), architect (22), divergence
+    if gates != 5:
+        failures.append(f"expected 5 human gates, saw {gates}")
 
     if failures:
         for f in failures:

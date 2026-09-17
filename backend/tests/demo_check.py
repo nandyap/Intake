@@ -23,6 +23,7 @@ log.setLevel(logging.INFO)
 ANSWERS = {
     "OwnerConfirmationRequest": {"confirmed": True, "confirmed_by": "Demo"},
     "CoEReviewRequest": {"decision": "approve", "reviewed_by": "Demo"},
+    "CriticalityConfirmationRequest": {"confirmed": True, "confirmed_by": "Demo"},
     "ArchitectReviewRequest": {"decision": "approve", "reviewed_by": "Demo"},
 }
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { Fragment, use, useCallback, useEffect, useState } from "react";
 
 import { SeedBadge, StatusBadge, TierBadge } from "@/components/badges";
 import { GateConsole } from "@/components/gate-console";
+import { StepOutputPanel } from "@/components/step-output";
 import {
   api,
   STEP_META,
@@ -21,6 +22,7 @@ export default function RunPage({
   const [run, setRun] = useState<RunSummary | null>(null);
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openStep, setOpenStep] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -93,9 +95,12 @@ export default function RunPage({
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">
           Derivation timeline
         </h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Select any step to see the output it produced.
+        </p>
         <div className="overflow-hidden rounded border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
@@ -105,11 +110,22 @@ export default function RunPage({
                 <th className="px-4 py-2 font-medium">Tier</th>
                 <th className="px-4 py-2 font-medium">Artifacts consulted</th>
                 <th className="px-4 py-2 font-medium">Flags</th>
+                <th className="px-4 py-2 font-medium sr-only">Output</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {timeline.steps.map((step) => (
-                <tr key={step.step} className="align-top hover:bg-slate-50">
+                <Fragment key={step.step}>
+                <tr
+                  className={`cursor-pointer align-top transition ${
+                    openStep === step.step
+                      ? "bg-teal-50/60"
+                      : "hover:bg-slate-50"
+                  }`}
+                  onClick={() =>
+                    setOpenStep(openStep === step.step ? null : step.step)
+                  }
+                >
                   <td className="px-4 py-2.5">
                     <span className="font-mono text-xs text-slate-400">
                       {step.step}
@@ -134,9 +150,9 @@ export default function RunPage({
                       <span className="text-slate-400">—</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
-                        {step.artifacts.map((a) => (
+                        {step.artifacts.map((a, i) => (
                           <span
-                            key={a.id}
+                            key={`${a.id}@${a.version}#${i}`}
                             className="inline-flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600"
                             title={`${a.id} @ ${a.version}`}
                           >
@@ -162,7 +178,32 @@ export default function RunPage({
                       <span className="text-slate-400">clean</span>
                     )}
                   </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <span
+                      aria-hidden
+                      className={`inline-block text-slate-400 transition-transform ${
+                        openStep === step.step ? "rotate-90" : ""
+                      }`}
+                    >
+                      ›
+                    </span>
+                    <span className="sr-only">
+                      {openStep === step.step ? "Hide" : "Show"} output for step{" "}
+                      {step.step}
+                    </span>
+                  </td>
                 </tr>
+                {openStep === step.step && (
+                  <tr>
+                    <td colSpan={6} className="p-0">
+                      <StepOutputPanel
+                        trackingReference={ref}
+                        step={step.step}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>

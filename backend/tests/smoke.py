@@ -150,6 +150,8 @@ def _answer(request: object) -> object:
         ArchitectReviewResponse,
         CoEReviewRequest,
         CoEReviewResponse,
+        CriticalityConfirmationRequest,
+        CriticalityConfirmationResponse,
         OwnerConfirmationRequest,
         OwnerConfirmationResponse,
         ReviewDecision,
@@ -158,6 +160,16 @@ def _answer(request: object) -> object:
     if isinstance(request, OwnerConfirmationRequest):
         log.info("  gate: owner confirmation -> confirmed")
         return OwnerConfirmationResponse(confirmed=True, confirmed_by="Layla Haddad")
+    if isinstance(request, CriticalityConfirmationRequest):
+        log.info(
+            "  gate: criticality confirmation (proposed=%s) -> confirmed",
+            request.proposed_class,
+        )
+        return CriticalityConfirmationResponse(
+            confirmed=True,
+            confirmed_class=request.proposed_class,
+            confirmed_by="Solution Architect",
+        )
     if isinstance(request, CoEReviewRequest):
         log.info(
             "  gate: AI CoE review (feasibility=%s) -> accepted",

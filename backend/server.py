@@ -25,6 +25,7 @@ from contracts.submission import Submission
 from contracts.verdicts import (
     ArchitectReviewResponse,
     CoEReviewResponse,
+    CriticalityConfirmationResponse,
     OwnerConfirmationResponse,
 )
 from knowledge.retrieval import ArtifactUnavailable, get_store
@@ -108,6 +109,15 @@ async def health() -> dict[str, Any]:
         "status": "ok",
         "model_provider_configured": settings.has_model_provider,
         "mode": "agents" if settings.has_model_provider else "stub",
+        "model": settings.active_chat_model or None,
+        # Whether reproducibility is backed by sampling controls or rests
+        # on the schema gate and pinned retrieval alone. Reported rather
+        # than assumed — a reasoning model cannot honour temperature/seed.
+        "sampling_controls": (
+            settings.supports_sampling_controls
+            if settings.has_model_provider
+            else None
+        ),
         "fail_closed": settings.fail_closed,
         "seeds_allowed": settings.allow_seed_artifacts,
     }
@@ -204,6 +214,46 @@ async def get_pack(tracking_reference: str) -> dict[str, Any]:
     if run is None:
         raise HTTPException(status_code=404, detail="unknown tracking reference")
     return run.pack.model_dump(mode="json")
+
+
+@app.get("/api/runs/{tracking_reference}/steps/{step}")
+async def get_step_output(tracking_reference: str, step: int) -> dict[str, Any]:
+    """One step's raw validated output.
+
+    The run page renders this when a timeline row is expanded, so a
+    reviewer can see exactly what any step produced rather than only the
+    curated design pack. The envelope fields every step carries are split
+    from the step's own payload, because the two answer different
+    questions: the envelope says how far to trust the output, the payload
+    is the output.
+    """
+    run = manager.get(tracking_reference)
+    if run is None:
+        raise HTTPException(status_code=404, detail="unknown tracking reference")
+
+    output = run.pack.get(step)
+    if output is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"step {step} has not produced output in this run",
+        )
+
+    envelope_fields = {
+        "step",
+        "tier",
+        "performed_by",
+        "artifacts_consulted",
+        "gap_flags",
+        "requires_input",
+        "produced_at",
+        "is_stub",
+    }
+
+    return {
+        "step": step,
+        "envelope": {k: v for k, v in output.items() if k in envelope_fields},
+        "payload": {k: v for k, v in output.items() if k not in envelope_fields},
+    }
 
 
 @app.get("/api/runs/{tracking_reference}/timeline")
@@ -346,6 +396,7 @@ async def get_design(tracking_reference: str) -> dict[str, Any]:
 _GATE_MODELS = {
     "OwnerConfirmationRequest": OwnerConfirmationResponse,
     "CoEReviewRequest": CoEReviewResponse,
+    "CriticalityConfirmationRequest": CriticalityConfirmationResponse,
     "ArchitectReviewRequest": ArchitectReviewResponse,
 }
 
