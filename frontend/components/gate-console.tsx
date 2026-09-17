@@ -90,6 +90,21 @@ export function GateConsole({
 
       {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
 
+      {busy && (
+        <div className="mt-4 flex items-start gap-3 rounded border border-teal-200 bg-teal-50 px-3 py-2.5">
+          <span
+            aria-hidden
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-teal-600 border-t-transparent"
+          />
+          <p className="text-sm text-teal-900">
+            <strong>Deriving.</strong> The steps after this gate are running
+            now. With live agents each step calls a model, so reaching the
+            next decision point can take a couple of minutes — the page is
+            waiting, not stuck.
+          </p>
+        </div>
+      )}
+
       <div className="mt-4 flex flex-wrap gap-2">
         {gate.gate_type === "OwnerConfirmationRequest" && (
           <>
