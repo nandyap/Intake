@@ -155,6 +155,53 @@ export function GateConsole({
           </>
         )}
 
+        {gate.gate_type === "CriticalityConfirmationRequest" && (
+          <>
+            <Button
+              disabled={busy}
+              tone="approve"
+              onClick={() =>
+                answer({
+                  confirmed: true,
+                  confirmed_class: String(data.proposed_class ?? ""),
+                  confirmed_by: who,
+                  notes,
+                })
+              }
+            >
+              Confirm class
+            </Button>
+            {CRITICALITY_CLASSES.filter(
+              (c) => c !== String(data.proposed_class ?? ""),
+            ).map((c) => (
+              <Button
+                key={c}
+                disabled={busy}
+                tone="return"
+                onClick={() =>
+                  answer({
+                    confirmed: true,
+                    confirmed_class: c,
+                    confirmed_by: who,
+                    notes,
+                  })
+                }
+              >
+                Substitute &ldquo;{c}&rdquo;
+              </Button>
+            ))}
+            <Button
+              disabled={busy}
+              tone="reject"
+              onClick={() =>
+                answer({ confirmed: false, confirmed_by: who, notes })
+              }
+            >
+              Reject
+            </Button>
+          </>
+        )}
+
         {gate.gate_type === "ArchitectReviewRequest" && (
           <>
             <Button
@@ -196,9 +243,12 @@ export function GateConsole({
   );
 }
 
+const CRITICALITY_CLASSES = ["routine", "significant", "severe"];
+
 const GATE_TITLES: Record<string, string> = {
   OwnerConfirmationRequest: "Business owner confirmation",
   CoEReviewRequest: "AI CoE review",
+  CriticalityConfirmationRequest: "Criticality class confirmation (step 13)",
   ArchitectReviewRequest: "Architect review",
 };
 
@@ -214,6 +264,13 @@ const GATE_FIELDS: Record<string, [string, string][]> = {
     ["criticality_band", "Criticality"],
     ["reuse_recommendation", "Reuse"],
     ["unresolved_inputs", "Unresolved inputs"],
+  ],
+  CriticalityConfirmationRequest: [
+    ["proposed_class", "Proposed class"],
+    ["provisional_band", "Provisional band (step 7)"],
+    ["dominant_failure_mode", "Dominant failure mode"],
+    ["is_homogeneous", "Homogeneous"],
+    ["workflow_node_count", "Workflow nodes"],
   ],
   ArchitectReviewRequest: [
     ["build_surface", "Build surface"],

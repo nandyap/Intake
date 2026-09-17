@@ -9,6 +9,7 @@ const STATUS_STYLES: Record<string, string> = {
   returned_as_integration: "bg-amber-50 text-amber-700 border-amber-200",
   awaiting_owner_confirmation: "bg-amber-50 text-amber-700 border-amber-200",
   awaiting_coe_review: "bg-amber-50 text-amber-700 border-amber-200",
+  awaiting_criticality_confirmation: "bg-amber-50 text-amber-700 border-amber-200",
   awaiting_architect_review: "bg-amber-50 text-amber-700 border-amber-200",
   awaiting_divergence_approval: "bg-amber-50 text-amber-700 border-amber-200",
 };

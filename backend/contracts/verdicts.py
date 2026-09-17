@@ -224,6 +224,39 @@ class CoEReviewResponse(BaseModel):
     information_requested: list[str] = Field(default_factory=list)
 
 
+class CriticalityConfirmationRequest(BaseModel):
+    """Step 13: the architect confirms the criticality class.
+
+    The class sets the control rigour for every step after it, so it is the
+    one derived value a model must not be the last word on. The architect
+    may confirm the proposed class or substitute a different one; an
+    override is a decision, not a correction, so there is no loop back.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    tracking_reference: str
+    proposed_class: str
+    provisional_band: str
+    is_homogeneous: bool
+    class_per_branch: dict[str, str] = Field(default_factory=dict)
+    dominant_failure_mode: str = ""
+    workflow_node_count: int = 0
+    prompt: str = (
+        "Confirm the criticality class, or substitute the correct one. "
+        "This class sets the control rigour for the rest of the derivation."
+    )
+
+
+class CriticalityConfirmationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    confirmed: bool
+    confirmed_class: str = ""
+    notes: str = ""
+    confirmed_by: str = ""
+
+
 class ArchitectReviewRequest(BaseModel):
     """Sponsor stage 3: an architect approves, rejects or re-prompts.
 

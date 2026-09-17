@@ -16,10 +16,10 @@
     {
       "rule_id": "R02",
       "provenance": "seed",
-      "description": "Fail where the criticality class was not confirmed - the control rigour depends on it.",
-      "condition": "not criticality_confirmation.architect_confirmed and criticality_confirmation.class_per_branch == {}",
+      "description": "Fail where the criticality class was not confirmed by an architect at the step 13 gate - the control rigour depends on it.",
+      "condition": "not criticality_confirmation.architect_confirmed",
       "outcome": "fail",
-      "reason": "Criticality class is unconfirmed. Control derivation would proceed on an unvalidated rigour level."
+      "reason": "Criticality class was not confirmed by an architect at step 13. Control derivation would proceed on an unvalidated rigour level."
     },
     {
       "rule_id": "R03",

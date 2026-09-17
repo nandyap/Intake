@@ -27,6 +27,8 @@ from contracts.verdicts import (
     ArchitectReviewResponse,
     CoEReviewRequest,
     CoEReviewResponse,
+    CriticalityConfirmationRequest,
+    CriticalityConfirmationResponse,
     OwnerConfirmationRequest,
     OwnerConfirmationResponse,
     ReviewDecision,
@@ -91,6 +93,22 @@ class StepExecutor(Executor):
 # ---------------------------------------------------------------------------
 
 
+async def _snapshot(pack: DesignPack, ctx: WorkflowContext[DesignPack]) -> None:
+    """Save the pack for the response handler and publish it to readers.
+
+    ``set_state`` is what this gate's response handler resumes from.
+    ``yield_output`` is what the run page reads *while the run is paused* —
+    without it the API keeps serving the pack as it was when the workflow
+    last produced output, so a run waiting at the architect gate still
+    reports a single completed step.
+
+    Every gate must do both. A gate that saves but does not publish leaves
+    the caller reading stale progress.
+    """
+    ctx.set_state("pack", pack.model_dump(mode="json"))
+    await ctx.yield_output(pack)
+
+
 class OwnerConfirmationGate(Executor):
     """Sponsor stage 1 — the business owner confirms objective and value.
 
@@ -107,7 +125,7 @@ class OwnerConfirmationGate(Executor):
     ) -> None:
         use_case = pack.get(3) or {}
         pack.status = RunStatus.AWAITING_OWNER_CONFIRMATION
-        ctx.set_state("pack", pack.model_dump(mode="json"))
+        await _snapshot(pack, ctx)
 
         await ctx.request_info(
             request_data=OwnerConfirmationRequest(
@@ -173,7 +191,7 @@ class CoEReviewGate(Executor):
         business_case = pack.outputs.get("initial_business_case", {})
 
         pack.status = RunStatus.AWAITING_COE_REVIEW
-        ctx.set_state("pack", pack.model_dump(mode="json"))
+        await _snapshot(pack, ctx)
 
         await ctx.request_info(
             request_data=CoEReviewRequest(
@@ -218,6 +236,97 @@ class CoEReviewGate(Executor):
         await ctx.send_message(pack)
 
 
+class CriticalityGate(Executor):
+    """Step 13 — the architect confirms the criticality class.
+
+    The diagram marks step 13 a human decision, and the reason is
+    structural: the criticality class sets the control rigour that steps
+    18, 19 and 21 derive from. A class proposed by an agent and never seen
+    by a person would let the whole control set rest on an unreviewed
+    judgement.
+
+    The architect may confirm the proposed class or substitute a different
+    one. A substitution is a decision, not a correction, so this gate has
+    no loop back — the corrected class simply replaces the proposed one and
+    the derivation continues with it.
+    """
+
+    def __init__(self, id: str = "gate_criticality"):
+        super().__init__(id=id)
+
+    @handler
+    async def request(
+        self, pack: DesignPack, ctx: WorkflowContext[DesignPack]
+    ) -> None:
+        confirmation = pack.get(13) or {}
+        provisional = pack.get(7) or {}
+        workflow = pack.get(11) or {}
+
+        branches = {
+            str(k): str(v)
+            for k, v in (confirmation.get("class_per_branch") or {}).items()
+        }
+        proposed = branches.get("default") or provisional.get("band", "")
+
+        pack.status = RunStatus.AWAITING_CRITICALITY_CONFIRMATION
+        await _snapshot(pack, ctx)
+
+        await ctx.request_info(
+            request_data=CriticalityConfirmationRequest(
+                tracking_reference=pack.tracking_reference,
+                proposed_class=proposed,
+                provisional_band=provisional.get("band", ""),
+                is_homogeneous=bool(confirmation.get("is_homogeneous", True)),
+                class_per_branch=branches,
+                dominant_failure_mode=provisional.get("dominant_failure_mode", ""),
+                workflow_node_count=len(workflow.get("nodes", [])),
+            ),
+            response_type=CriticalityConfirmationResponse,
+        )
+
+    @response_handler
+    async def on_response(
+        self,
+        original_request: CriticalityConfirmationRequest,
+        response: CriticalityConfirmationResponse,
+        ctx: WorkflowContext[DesignPack],
+    ) -> None:
+        pack = DesignPack.model_validate(ctx.get_state("pack"))
+        pack.outputs["criticality_confirmation"] = response.model_dump(mode="json")
+
+        if not response.confirmed:
+            pack.status = RunStatus.REJECTED
+            pack.history.append(
+                f"architect did not confirm the criticality class: {response.notes}"
+            )
+            await ctx.send_message(pack)
+            return
+
+        confirmation = pack.get(13) or {}
+        chosen = response.confirmed_class or original_request.proposed_class
+
+        if chosen != original_request.proposed_class:
+            confirmation["class_per_branch"] = {"default": chosen}
+            confirmation["is_homogeneous"] = True
+            pack.history.append(
+                f"architect substituted criticality class "
+                f"{original_request.proposed_class or 'none'} -> {chosen} "
+                f"({response.confirmed_by or 'unnamed'})"
+            )
+        else:
+            pack.history.append(
+                f"architect confirmed criticality class {chosen} "
+                f"({response.confirmed_by or 'unnamed'})"
+            )
+
+        # The flag the readiness service reads. Only a human sets it.
+        confirmation["architect_confirmed"] = True
+        pack.outputs["13"] = confirmation
+        pack.status = RunStatus.RUNNING
+
+        await ctx.send_message(pack)
+
+
 class ArchitectReviewGate(Executor):
     """Sponsor stage 3 — an architect approves, rejects or re-prompts.
 
@@ -238,7 +347,7 @@ class ArchitectReviewGate(Executor):
         controls = pack.get(19) or {}
 
         pack.status = RunStatus.AWAITING_ARCHITECT_REVIEW
-        ctx.set_state("pack", pack.model_dump(mode="json"))
+        await _snapshot(pack, ctx)
 
         await ctx.request_info(
             request_data=ArchitectReviewRequest(
@@ -309,7 +418,7 @@ class DivergenceGate(Executor):
             return
 
         use_case = pack.get(3) or {}
-        ctx.set_state("pack", pack.model_dump(mode="json"))
+        await _snapshot(pack, ctx)
         await ctx.request_info(
             request_data=OwnerConfirmationRequest(
                 tracking_reference=pack.tracking_reference,

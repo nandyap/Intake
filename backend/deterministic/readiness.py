@@ -77,20 +77,21 @@ def evaluate(
         )
 
     # -- R02 · criticality unconfirmed (fail) ------------------------------
-    unconfirmed = (
-        not criticality.architect_confirmed and not criticality.class_per_branch
-    )
+    # Confirmation means a human set the flag at the step 13 gate. A
+    # populated ``class_per_branch`` only means the agent proposed a class,
+    # which is exactly the case this rule exists to catch.
+    unconfirmed = not criticality.architect_confirmed
     if record(
         "R02",
-        "Fail where the criticality class was not confirmed.",
+        "Fail where the criticality class was not confirmed by an architect.",
         unconfirmed,
         f"confirmed={criticality.architect_confirmed}, "
         f"branches={len(criticality.class_per_branch)}",
     ):
         outcome = ReadinessOutcome.FAIL
         conditions.append(
-            "Criticality class is unconfirmed. Control derivation would "
-            "proceed on an unvalidated rigour level."
+            "Criticality class was not confirmed by an architect at step 13. "
+            "Control derivation would proceed on an unvalidated rigour level."
         )
 
     # -- R03 · no assertions (conditional) ---------------------------------

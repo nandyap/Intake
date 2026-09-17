@@ -140,6 +140,7 @@ class RunStatus(str, Enum):
     RUNNING = "running"
     AWAITING_OWNER_CONFIRMATION = "awaiting_owner_confirmation"
     AWAITING_COE_REVIEW = "awaiting_coe_review"
+    AWAITING_CRITICALITY_CONFIRMATION = "awaiting_criticality_confirmation"
     AWAITING_ARCHITECT_REVIEW = "awaiting_architect_review"
     AWAITING_DIVERGENCE_APPROVAL = "awaiting_divergence_approval"
     REJECTED = "rejected"

@@ -28,6 +28,7 @@ from contracts.verdicts import FeasibilityOutcome, ReadinessOutcome
 from workflow.executors import (
     ArchitectReviewGate,
     CoEReviewGate,
+    CriticalityGate,
     DivergenceGate,
     OwnerConfirmationGate,
     TerminalExecutor,
@@ -146,6 +147,14 @@ def _readiness_failed(msg: Any) -> bool:
     return bool(verdict) and verdict.get("outcome") == ReadinessOutcome.FAIL.value
 
 
+def _criticality_confirmed(msg: Any) -> bool:
+    if not _running(msg):
+        return False
+    return bool(
+        (msg.outputs.get("criticality_confirmation") or {}).get("confirmed")
+    )
+
+
 def _architect_re_prompted(msg: Any) -> bool:
     if not _is_pack(msg) or msg.status is RunStatus.REJECTED:
         return False
@@ -212,6 +221,7 @@ def build_graph(
     s10 = CheckOntology(agents.get(10))
     s11 = SequenceWorkflow(agents.get(11))
     s13 = ConfirmCriticality(agents.get(13))
+    criticality_gate = CriticalityGate()
     s14 = DeclareAssertions(agents.get(14))
     s15 = ReadinessGate()
     s16 = ClassifyDeterminism(agents.get(16))
@@ -255,7 +265,16 @@ def build_graph(
 
     # --- stretch 3: deep derivation to the readiness gate -----------------
     # Step 12 (Contract sources) is deferred — no green inputs in Phase 1.
-    builder.add_chain([s9, s10, s11, s13, s14, s15])
+    builder.add_chain([s9, s10, s11, s13])
+
+    # The criticality class sets the control rigour for steps 18, 19 and 21,
+    # so the diagram marks step 13 a human decision. Readiness rule R02
+    # fails closed if this gate has not set ``architect_confirmed``.
+    builder.add_edge(s13, criticality_gate)
+    builder.add_edge(criticality_gate, s14, condition=_criticality_confirmed)
+    builder.add_edge(criticality_gate, terminal, condition=_terminated)
+
+    builder.add_chain([s14, s15])
 
     builder.add_edge(s15, s16, condition=_readiness_ok)
     builder.add_edge(s15, terminal, condition=_readiness_failed)
@@ -280,8 +299,8 @@ def build_graph(
 
     workflow = builder.build()
     logger.info(
-        "Derivation graph built: 20 steps, 4 gates, 4 declared cycles, "
-        "%d agent(s) wired (rest run as stubs)",
+        "Derivation graph built: 19 steps (3-22, less deferred step 12), "
+        "5 gates, 4 declared cycles, %d agent(s) wired (rest run as stubs)",
         len(agents),
     )
     return workflow
