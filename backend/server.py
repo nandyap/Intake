@@ -44,6 +44,24 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Refuse to start without a model provider unless stub mode was asked for.
+# A stubbed run still produces a design pack carrying a recommendation, so
+# a misconfigured key must fail the deployment rather than quietly answer
+# with placeholders.
+settings.require_model_provider()
+
+if settings.has_model_provider:
+    logger.info(
+        "Model provider configured: %s (sampling controls %s)",
+        settings.active_chat_model,
+        "on" if settings.supports_sampling_controls else "off",
+    )
+else:
+    logger.warning(
+        "STUB MODE - ALLOW_STUB_AGENTS is set. The 14 agentic steps will "
+        "return placeholder output marked is_stub. Not a derivation."
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -108,11 +126,15 @@ async def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "model_provider_configured": settings.has_model_provider,
-        "mode": "agents" if settings.has_model_provider else "stub",
+        "mode": settings.mode,
         "model": settings.active_chat_model or None,
+        # True only when stub mode was deliberately waived in, so a
+        # placeholder run can never be mistaken for a real one.
+        "stub_mode_waived": settings.allow_stub_agents
+        and not settings.has_model_provider,
         # Whether reproducibility is backed by sampling controls or rests
         # on the schema gate and pinned retrieval alone. Reported rather
-        # than assumed — a reasoning model cannot honour temperature/seed.
+        # than assumed - a reasoning model cannot honour temperature/seed.
         "sampling_controls": (
             settings.supports_sampling_controls
             if settings.has_model_provider

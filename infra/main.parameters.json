@@ -27,6 +27,7 @@
     "frontendImage": { "value": "${SERVICE_FRONTEND_IMAGE_NAME}" },
 
     "compassBaseUrl": { "value": "${COMPASS_API_BASE_URL=https://api.core42.ai/v1}" },
-    "compassSecretName": { "value": "${COMPASS_SECRET_NAME=}" }
+    "compassSecretName": { "value": "${COMPASS_SECRET_NAME=}" },
+    "compassChatModel": { "value": "${COMPASS_CHAT_MODEL=gpt-5.1}" }
   }
 }

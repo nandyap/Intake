@@ -113,6 +113,10 @@ def build_agents() -> dict[int, Any]:
     """
     chat_client = create_chat_client()
     if chat_client is None:
+        # Guard the library entry point too, not just the server: a script
+        # or test that builds the graph directly must not silently get a
+        # stub derivation it did not ask for.
+        settings.require_model_provider()
         return {}
 
     from agent_framework import Agent

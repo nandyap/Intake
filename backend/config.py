@@ -78,6 +78,21 @@ class Settings:
         default_factory=lambda: os.getenv("MODEL_SAMPLING_CONTROLS", "auto").strip().lower()
     )
 
+    # ---- Stub mode -------------------------------------------------------
+    # Real agents are the default. Stub mode must be asked for.
+    #
+    # A stubbed run completes and produces a design pack carrying a
+    # recommendation. Every stubbed step is marked ``is_stub``, but the
+    # pack still *reads* like a derivation. If a missing or rejected key
+    # silently fell back to stubs, a misconfigured deployment would keep
+    # answering with placeholder values that look like findings.
+    #
+    # So a missing provider is an error, not a mode. Set ALLOW_STUB_AGENTS
+    # to run without a model on purpose - demos, offline work, CI.
+    allow_stub_agents: bool = field(
+        default_factory=lambda: _flag("ALLOW_STUB_AGENTS", "false")
+    )
+
     # ---- Governed artifacts ---------------------------------------------
     artifact_root: Path = field(
         default_factory=lambda: Path(
@@ -127,13 +142,34 @@ class Settings:
 
     @property
     def has_model_provider(self) -> bool:
-        """True when some LLM provider is configured.
-
-        When False the graph still runs end-to-end on stub executors, which
-        is the Sprint 1 mode.
-        """
+        """True when some LLM provider is configured."""
         return bool(
             self.compass_api_key or self.use_entra_id or self.foundry_project_endpoint
+        )
+
+    @property
+    def mode(self) -> str:
+        """``agents`` or ``stub`` - what this process will actually do."""
+        return "agents" if self.has_model_provider else "stub"
+
+    def require_model_provider(self) -> None:
+        """Fail fast when no provider is configured and none was waived.
+
+        Called at startup rather than at the first step, so a
+        misconfiguration surfaces as a failed deployment instead of a
+        design pack full of placeholders.
+        """
+        if self.has_model_provider or self.allow_stub_agents:
+            return
+        raise RuntimeError(
+            "No model provider is configured and ALLOW_STUB_AGENTS is not "
+            "set.\n\n"
+            "The 14 agentic steps would return placeholder output that "
+            "still reads like a derivation, so this is treated as a "
+            "misconfiguration rather than a mode.\n\n"
+            "  - to run for real : set COMPASS_API_KEY (backend/.env "
+            "locally, Key Vault in Azure)\n"
+            "  - to run stubbed  : set ALLOW_STUB_AGENTS=true\n"
         )
 
     @property

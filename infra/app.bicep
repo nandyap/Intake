@@ -66,13 +66,18 @@ param allowRegistryPublicAccess bool = true
 Name of the Key Vault secret holding the Compass API key.
 
 Leave EMPTY to deploy without model access. The backend then runs in stub
-mode: the full 3-22 graph, all four human gates and every deterministic
+mode: the full 3-22 graph, all five human gates and every deterministic
 service execute, with agentic steps returning schema-valid placeholders.
+ALLOW_STUB_AGENTS is set automatically in that case, so the waiver is
+explicit rather than a silent fallback.
 
 Set this to the secret name once Compass credentials are issued, create
 the secret in Key Vault, and redeploy. No code change is required.
 ''')
 param compassSecretName string = ''
+
+@description('Compass chat model. gpt-5.1 is a reasoning model, so temperature and seed are omitted automatically.')
+param compassChatModel string = 'gpt-5.1'
 
 // Deploying without the secret is a supported first-deployment posture,
 // not a degraded one — it proves infrastructure, identity and networking
@@ -315,6 +320,16 @@ resource backend 'Microsoft.App/containerApps@2024-03-01' = {
             }
             // Reproducibility is the product, not a tuning preference.
             { name: 'MODEL_TEMPERATURE', value: '0' }
+            { name: 'MODEL_SEED', value: '42' }
+            // Reasoning models reject temperature and seed outright, so
+            // whether these are sent is decided from the model name.
+            { name: 'MODEL_SAMPLING_CONTROLS', value: 'auto' }
+            { name: 'COMPASS_CHAT_MODEL', value: compassChatModel }
+            // Real agents are the default. Without a Compass secret the
+            // backend refuses to start unless stub mode is asked for, so
+            // a missing key fails the deployment rather than producing
+            // placeholder design packs that read like derivations.
+            { name: 'ALLOW_STUB_AGENTS', value: string(!useCompassSecret) }
             // Fail-closed retrieval is mandatory in every environment.
             { name: 'FAIL_CLOSED', value: 'true' }
             // Seeds remain permitted until M42 delivers the governed
