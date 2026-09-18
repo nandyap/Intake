@@ -8,6 +8,24 @@
 !**/.env.example
 **/*.local.md
 
+# EXCEPTION, and a deliberate one: backend/.env travels into the image.
+#
+# Why: `azd deploy` updates the image only. Container app environment
+# variables come from the Bicep template during `azd provision`, so a key
+# supplied through azd env needs a provision to reach the app. Where the
+# operator cannot provision — MFA policy, Key Vault access — that path is
+# closed, and baking the file into the image is what remains.
+#
+# Safe because backend/.env is gitignored: the key reaches a private ACR,
+# never GitHub. config.py loads it with override=False, so anything the
+# platform sets still wins.
+#
+# Weaker than the alternatives, and worth saying plainly: anyone who can
+# pull the image can read the key, and rotation means rebuilding. Prefer
+# the Key Vault reference (compassSecretName) or the azd parameter
+# (compassApiKey) as soon as either is available.
+!backend/.env
+
 # Not needed by the backend image
 frontend
 infra

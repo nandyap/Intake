@@ -15,7 +15,16 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 _BACKEND_DIR = Path(__file__).resolve().parent
-load_dotenv(_BACKEND_DIR / ".env", override=True)
+
+# override=False: a real environment variable beats the .env file.
+#
+# This is the precedence a container needs. The image bakes in a .env for
+# local convenience, but the platform sets ARTIFACT_ROOT, COSMOS_ENDPOINT
+# and friends to container paths. With override=True the file won — so a
+# baked ARTIFACT_ROOT of ../artifacts replaced the container's /artifacts,
+# every governed artifact failed to resolve, and fail-closed stopped every
+# step. Deployment configuration must outrank a file shipped in the image.
+load_dotenv(_BACKEND_DIR / ".env", override=False)
 
 
 def _flag(name: str, default: str = "false") -> bool:
